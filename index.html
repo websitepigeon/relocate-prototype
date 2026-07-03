@@ -5,13 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Customer default</title>
     <script>
+      const relocateDefaultMigrationKey = "relocate-defaults-2026-07-03";
+      if (!localStorage.getItem(relocateDefaultMigrationKey)) {
+        const storedFont = localStorage.getItem("relocate-font");
+        const storedContentWidth = localStorage.getItem("relocate-content-width");
+        if (!storedFont || storedFont === "figtree") localStorage.setItem("relocate-font", "ibm-plex-sans");
+        if (!storedContentWidth || storedContentWidth === "full") localStorage.setItem("relocate-content-width", "max");
+        localStorage.setItem(relocateDefaultMigrationKey, "true");
+      }
       document.documentElement.dataset.theme = localStorage.getItem("relocate-theme") || "canvas";
       document.documentElement.dataset.mode = localStorage.getItem("relocate-mode") || "light";
       document.documentElement.dataset.nav = localStorage.getItem("relocate-nav") || "sidebar";
-      document.documentElement.dataset.font = localStorage.getItem("relocate-font") || "figtree";
+      document.documentElement.dataset.font = localStorage.getItem("relocate-font") || "ibm-plex-sans";
       document.documentElement.dataset.comic = localStorage.getItem("relocate-comic-sans") === "true" ? "true" : "false";
       document.documentElement.dataset.density = localStorage.getItem("relocate-density") || "comfortable";
-      document.documentElement.dataset.contentWidth = localStorage.getItem("relocate-content-width") || "full";
+      document.documentElement.dataset.contentWidth = localStorage.getItem("relocate-content-width") || "max";
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -131,6 +139,12 @@
         --ring: 217 76% 42%;
       }
 
+      :root[data-theme="legacy"] {
+        --primary: 210 1% 59%;
+        --primary-foreground: 0 0% 100%;
+        --ring: 210 1% 59%;
+      }
+
       :root[data-theme="neutral"] { --primary: 0 0% 9%; --ring: 0 0% 9%; }
       :root[data-theme="amber"] { --primary: 38 92% 50%; --primary-foreground: 0 0% 9%; --ring: 38 92% 50%; --app-shell: 38 28% 96%; --surface: 38 32% 98%; --sidebar: 38 22% 94%; }
       :root[data-theme="blue"] { --primary: 221 83% 53%; --ring: 221 83% 53%; --app-shell: 214 42% 96%; --surface: 210 38% 98%; --sidebar: 214 35% 94%; }
@@ -184,6 +198,12 @@
         --input: 219 24% 27%;
       }
 
+      :root[data-theme="legacy"][data-mode="dark"] {
+        --primary: 210 1% 64%;
+        --primary-foreground: 0 0% 6%;
+        --ring: 210 1% 64%;
+      }
+
       :root[data-theme="neutral"][data-mode="dark"] { --primary: 0 0% 82%; --ring: 0 0% 82%; }
       :root[data-theme="amber"][data-mode="dark"] { --primary: 43 96% 56%; --ring: 43 96% 56%; }
       :root[data-theme="blue"][data-mode="dark"] { --primary: 217 91% 60%; --ring: 217 91% 60%; }
@@ -230,6 +250,12 @@
         background: hsl(var(--surface)) !important;
         min-width: 0;
         overflow-x: hidden;
+      }
+
+      body:has(#onePageOrderPage:not(.hidden)) #appShell,
+      body:has(#onePageOrderPage:not(.hidden)) main {
+        overflow-x: clip;
+        overflow-y: visible;
       }
 
       .shell {
@@ -396,16 +422,35 @@
       }
 
       .fabric-select {
+        position: relative;
         height: 36px;
+        display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
         border-color: hsl(var(--border));
         background: hsl(var(--card));
-        padding: 0 12px;
+        padding: 0 40px 0 12px;
         font-size: 14px;
         line-height: 20px;
         text-align: left;
+      }
+
+      .fabric-select::after {
+        content: "";
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid hsl(var(--muted-foreground));
+        border-bottom: 2px solid hsl(var(--muted-foreground));
+        transform: translateY(-65%) rotate(45deg);
+        pointer-events: none;
+      }
+
+      .fabric-select > svg:last-child {
+        display: none;
       }
 
       .fabric-select:hover,
@@ -1857,6 +1902,10 @@
         background: #2563eb;
       }
 
+      .settings-swatch.legacy {
+        background: #969798;
+      }
+
       .nav-subpopout-host:hover > .nav-popout,
       .nav-subpopout-host:focus-within > .nav-popout {
         opacity: 1;
@@ -2138,6 +2187,10 @@
         #customerDetailPage > section:nth-of-type(2) > div:first-child > div::-webkit-scrollbar,
         #orderDetailTabs::-webkit-scrollbar {
           display: none;
+        }
+
+        .order-scroll-shell {
+          position: relative;
         }
 
         #overviewPage > section,
@@ -3559,11 +3612,17 @@
 
           <section class="overflow-hidden rounded-[14px] border border-border bg-card shadow-panel">
             <div class="border-b border-border p-6">
-              <div class="inline-flex rounded-[10px] bg-secondary p-1">
-                <button class="customer-tab active" data-detail-tab="orders">Orders</button>
-                <button class="customer-tab" data-detail-tab="fitprofiles">FitProfiles</button>
-                <button class="customer-tab" data-detail-tab="measurements">Body Measurements</button>
-                <button class="customer-tab" data-detail-tab="account">Account information</button>
+              <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div class="inline-flex w-fit rounded-[10px] bg-secondary p-1">
+                  <button class="customer-tab active" data-detail-tab="orders">Orders</button>
+                  <button class="customer-tab" data-detail-tab="fitprofiles">FitProfiles</button>
+                  <button class="customer-tab" data-detail-tab="measurements">Body Measurements</button>
+                  <button class="customer-tab" data-detail-tab="account">Account information</button>
+                </div>
+                <button id="createFitProfileBtn" class="btn btn-primary w-fit shrink-0" type="button">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>
+                  Create FitProfile
+                </button>
               </div>
             </div>
 
@@ -3670,7 +3729,7 @@
             </div>
 
             <div id="detailFitProfilesPanel" class="hidden">
-              <div id="fitProfileToolbar" class="flex flex-col gap-3 border-b border-border p-6 md:flex-row md:items-center md:justify-between">
+              <div id="fitProfileToolbar" class="flex flex-col gap-3 border-b border-border p-6 md:flex-row md:items-center">
                 <div class="flex flex-col gap-3 sm:flex-row">
                   <label class="relative block w-full sm:w-[260px]">
                     <svg class="icon absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
@@ -3707,10 +3766,6 @@
                     </div>
                   </div>
                 </div>
-                <button id="createFitProfileBtn" class="btn btn-primary" type="button">
-                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>
-                  Create FitProfile
-                </button>
               </div>
               <div id="fitProfileTableView" class="overflow-x-auto">
                 <table class="w-full min-w-[1240px] table-fixed text-left text-sm">
@@ -3753,6 +3808,11 @@
           <section id="createFitProfileWorkspace" class="overflow-visible"></section>
           <div id="createFitProfileSelectMenu" class="dropdown fabric-select-menu fixed z-[3020] w-64 rounded-lg border border-border bg-card p-1 text-sm shadow-xl"></div>
           <div id="fitToolValueMenu" class="dropdown fabric-select-menu fixed z-[3020] w-64 rounded-lg border border-border bg-card p-1 text-sm shadow-xl"></div>
+        </div>
+
+        <div id="onePageOrderPage" class="content-pad hidden p-6">
+          <section id="onePageOrderWorkspace"></section>
+          <div id="onePageOrderSelectMenu" class="dropdown fabric-select-menu fixed z-[3020] w-64 rounded-lg border border-border bg-card p-1 text-sm shadow-xl"></div>
         </div>
 
         <div id="ordersPage" class="content-pad hidden p-6">
@@ -4106,6 +4166,8 @@
     </div>
 
     <div id="overlay" class="overlay fixed inset-0 z-40 bg-white/55"></div>
+
+    <section id="onePageOrderCardModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(1120px,calc(100vw-32px))] rounded-[14px] border border-border bg-card shadow-xl"></section>
 
     <section id="logoutConfirmModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(420px,calc(100vw-32px))] rounded-[14px] border border-border bg-card shadow-xl">
       <div class="border-b border-border px-5 py-4">
@@ -4517,6 +4579,7 @@
                     <button class="settings-select-option" data-settings-theme="yellow" type="button"><span class="flex items-center gap-2"><span class="settings-swatch yellow"></span>Yellow</span><span class="hidden text-muted-foreground" data-settings-check="theme-yellow">✓</span></button>
                     <button class="settings-select-option" data-settings-theme="noir" type="button"><span class="flex items-center gap-2"><span class="settings-swatch noir"></span>Noir</span><span class="hidden text-muted-foreground" data-settings-check="theme-noir">✓</span></button>
                     <button class="settings-select-option" data-settings-theme="corporate-blue" type="button"><span class="flex items-center gap-2"><span class="settings-swatch corporate-blue"></span>Corporate Blue</span><span class="hidden text-muted-foreground" data-settings-check="theme-corporate-blue">✓</span></button>
+                    <button class="settings-select-option" data-settings-theme="legacy" type="button"><span class="flex items-center gap-2"><span class="settings-swatch legacy"></span>Legacy</span><span class="hidden text-muted-foreground" data-settings-check="theme-legacy">✓</span></button>
                   </div>
                 </div>
               </div>
@@ -4592,6 +4655,7 @@
         <button class="theme-card" data-theme-option="teal"><span class="theme-swatch"><span style="background:#f0fdfa"></span><span style="background:#ffffff"></span><span style="background:#0d9488"></span></span><span class="block text-sm font-medium">Teal</span><span class="mt-1 block text-xs text-muted-foreground">Balanced teal accent.</span></button>
         <button class="theme-card" data-theme-option="violet"><span class="theme-swatch"><span style="background:#f5f3ff"></span><span style="background:#ffffff"></span><span style="background:#7c3aed"></span></span><span class="block text-sm font-medium">Violet</span><span class="mt-1 block text-xs text-muted-foreground">Clean violet accent.</span></button>
         <button class="theme-card" data-theme-option="yellow"><span class="theme-swatch"><span style="background:#fefce8"></span><span style="background:#ffffff"></span><span style="background:#eab308"></span></span><span class="block text-sm font-medium">Yellow</span><span class="mt-1 block text-xs text-muted-foreground">Bright yellow accent.</span></button>
+        <button class="theme-card" data-theme-option="legacy"><span class="theme-swatch"><span style="background:#f7f7f5"></span><span style="background:#ffffff"></span><span style="background:#969798"></span></span><span class="block text-sm font-medium">Legacy</span><span class="mt-1 block text-xs text-muted-foreground">Company grey accent.</span></button>
       </div>
     </section>
 
@@ -4617,6 +4681,10 @@
         <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/35 px-3 py-2">
           <span class="font-mono text-sm font-semibold">TTT</span>
           <span class="text-sm text-muted-foreground">Unlock or lock the order type switch.</span>
+        </div>
+        <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/35 px-3 py-2">
+          <span class="font-mono text-sm font-semibold">OOO</span>
+          <span class="text-sm text-muted-foreground">Jump straight to the one-page order flow.</span>
         </div>
         <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/35 px-3 py-2">
           <span class="font-mono text-sm font-semibold">NNN</span>
@@ -4673,8 +4741,39 @@
       </div>
       <div class="space-y-4 p-5">
         <p class="text-sm text-muted-foreground">Order creation is intentionally not included in this test build.</p>
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-3">
+          <button id="continueCreateOrderAnywayBtn" class="btn btn-soft" type="button">Continue anyway</button>
           <button id="dismissCreateOrderStopModalBtn" class="btn btn-primary" type="button">Close</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="createOrderFlowModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(980px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-border bg-card shadow-xl">
+      <div class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+        <div>
+          <h2 class="text-base font-medium">Create order</h2>
+          <p class="mt-1 text-sm text-muted-foreground">Choose an item to start the order flow.</p>
+        </div>
+        <button id="closeCreateOrderFlowModalBtn" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-secondary" title="Close">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="border-b border-border p-5">
+        <div class="flex h-10 items-center gap-3 rounded-[10px] border border-input bg-card px-3">
+          <svg class="icon h-4 w-4 text-muted-foreground" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          <input id="createOrderFlowSearchInput" class="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" placeholder="Search all order items" />
+        </div>
+      </div>
+      <div class="grid min-h-[560px] md:grid-cols-[280px_minmax(0,1fr)]">
+        <aside class="border-b border-border p-3 md:border-b-0 md:border-r">
+          <nav id="createOrderFlowCategories" class="space-y-1"></nav>
+        </aside>
+        <div class="flex min-h-[560px] flex-col">
+          <div id="createOrderFlowItems" class="flex-1 overflow-y-auto p-5"></div>
+          <div class="flex justify-end gap-3 border-t border-border px-5 py-4">
+            <button id="cancelCreateOrderFlowModalBtn" class="btn btn-soft" type="button">Cancel</button>
+            <button id="beginCreateOrderFlowBtn" class="btn btn-primary" type="button">Continue</button>
+          </div>
         </div>
       </div>
     </section>

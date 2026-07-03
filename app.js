@@ -177,6 +177,15 @@ const customerAccountExtras = {
   },
 };
 
+const appDefaultMigrationKey = "relocate-defaults-2026-07-03";
+if (!localStorage.getItem(appDefaultMigrationKey)) {
+  const storedFont = localStorage.getItem("relocate-font");
+  const storedContentWidth = localStorage.getItem("relocate-content-width");
+  if (!storedFont || storedFont === "figtree") localStorage.setItem("relocate-font", "ibm-plex-sans");
+  if (!storedContentWidth || storedContentWidth === "full") localStorage.setItem("relocate-content-width", "max");
+  localStorage.setItem(appDefaultMigrationKey, "true");
+}
+
 const state = {
   selected: new Set(),
   editingId: null,
@@ -191,7 +200,7 @@ const state = {
   theme: localStorage.getItem("relocate-theme") || "canvas",
   mode: localStorage.getItem("relocate-mode") || "light",
   navMode: localStorage.getItem("relocate-nav") || "sidebar",
-  font: localStorage.getItem("relocate-font") || "figtree",
+  font: localStorage.getItem("relocate-font") || "ibm-plex-sans",
   interfaceDensity: localStorage.getItem("relocate-density") || "comfortable",
   accountSettingsTab: "account",
   accountSettingsSelect: null,
@@ -215,6 +224,56 @@ const state = {
   orderFormPreviewUnlocked: false,
   activeOrderFormPart: "jacket",
   orderFormStartItem: "Outerwear",
+  createOrderFlowCategory: "trousers",
+  createOrderFlowSearch: "",
+  onePageOrderItem: "knitwear",
+  onePageOrderCollapsedSections: new Set(["fitTools", "payment", "orderDetails"]),
+  onePageOrderSameBasicInfo: false,
+  onePageOrderRunningInfoCollapsed: false,
+  activeOnePageOrderCardIndex: null,
+  activeOnePageOrderCardTab: "general",
+  activeOnePageOrderSelect: null,
+  activeOnePageOrderSelectPosition: null,
+  activeOnePageFabricSearch: null,
+  activeOnePageFabricSearchPosition: null,
+  onePageOrderDesignCopyRows: new Set(),
+  onePageOrderFields: {
+    salesAssociate: "Sophie de Wit",
+    item: "Knitwear",
+    knitwearItem: "Knit",
+    quantity: "1",
+    model: "V-Neck",
+    make: "Traditional",
+    fabric: "K10139 heathered grey cashmere",
+    knitType: "Single Yarn Solid",
+    fitProfileMode: "create",
+    fitProfileName: "[Knit] 03-Jul-2026",
+    fitProfileSearchQuery: "",
+    fitProfileExisting: "[Knit] 03-Jul-2026",
+    tryOnFit: "K40",
+    tryOnSize: "52",
+    hipWaist: "0",
+    length: "0",
+    sleeveLength: "0",
+    shortSleeveLength: "0",
+    neckline: "V-neck (1.8 cm)",
+    armholeStyle: "Classic",
+    detailing: "Standard Rib",
+    sleeveStyle: "",
+    chestPocket: "None",
+    sidePockets: "None",
+    contrastOption: "No Contrast",
+    contrastColor: "No Contrast",
+    shopOrderNumber: "",
+    occasion: "",
+    reviewed: false,
+  },
+  onePageOrderLines: [],
+  onePageOrderDesigns: [],
+  onePageOrderPayments: [],
+  onePageOrderDetails: [],
+  onePageOrderRemarks: JSON.parse(localStorage.getItem("relocate-one-page-order-remarks") || "{}"),
+  onePageOrderTrouserFitTools: {},
   orderFormDesignModalPart: null,
   orderFormDraft: null,
   inspirationColors: {
@@ -239,7 +298,7 @@ const state = {
   pendingShopSettingsNavigation: null,
   comicSansEnabled: localStorage.getItem("relocate-comic-sans") === "true",
   denseModeEnabled: localStorage.getItem("relocate-density") === "dense",
-  contentWidthMode: localStorage.getItem("relocate-content-width") || "full",
+  contentWidthMode: localStorage.getItem("relocate-content-width") || "max",
   gdprMaskEnabled: localStorage.getItem("relocate-gdpr-mask") === "true",
   dashboardOverlayHidden: false,
   actionColumnSide: localStorage.getItem("relocate-action-column-side") || "right",
@@ -627,6 +686,7 @@ const fr = {
   Noir: "Noir",
   "Black, white, and grey.": "Noir, blanc et gris.",
   "Corporate Blue": "Bleu corporate",
+  Legacy: "Héritage",
   Theme: "Thème",
   "Side navigation": "Navigation latérale",
   Light: "Clair",
@@ -1522,6 +1582,148 @@ const createFitProfileLevels = [
 const createFitProfileTryOnFits = ["Regular", "Slim", "SuperSlim", "Slim2.0", "Comfort"];
 const createFitProfileTryOnSizes = Array.from({ length: 20 }, (_, index) => String(32 + index * 2));
 
+const onePageOrderItemOptions = [
+  { id: "two-piece", label: "2-Piece Suit", item: "2-Piece Suit" },
+  { id: "knitwear", label: "Knitwear", item: "Knitwear" },
+  { id: "trousers", label: "Trousers", item: "Trousers" },
+];
+
+const createOrderFlowCategories = [
+  { id: "formal", label: "Formal Suits & Jackets" },
+  { id: "informal", label: "Informal Suits & Jackets" },
+  { id: "trousers", label: "Trousers & Pants" },
+  { id: "vests", label: "Vests" },
+  { id: "shirts", label: "Shirts" },
+  { id: "knitwear", label: "Knitwear" },
+  { id: "outerwear", label: "Outerwear" },
+  { id: "shoes-belts", label: "Shoes & Belts" },
+  { id: "accessories", label: "(Bow)Ties, Pocket Squares & Cummerbunds" },
+];
+
+const createOrderFlowItems = {
+  formal: [
+    "2-Piece Suit",
+    "2-Piece Suit + Extra Trousers",
+    "3-Piece Suit",
+    "Jacket",
+    "Trousers",
+    "Waistcoat",
+    "Jacket + Bermudas",
+    "3-Piece Suit + Extra Trousers",
+  ].map((label, index) => ({ id: `formal-${index}`, label, disabled: true })),
+  informal: [
+    "Informal Jacket",
+    "Informal Jacket + Trouser",
+    "Trousers",
+  ].map((label, index) => ({ id: `informal-${index}`, label, disabled: true })),
+  trousers: [
+    { id: "trousers-standard", label: "Trousers", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Trousers" },
+    { id: "trousers-chino", label: "Chino", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Chino" },
+    { id: "trousers-jeans", label: "Jeans/5 Pockets", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Jeans/5 Pockets" },
+    { id: "trousers-bermudas", label: "Bermudas", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Bermudas" },
+  ],
+  knitwear: [
+    { id: "knitwear-knit", label: "Knit", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Knit", note: "Skip the TryOn - Convert from a Jacket FitProfile" },
+    { id: "knitwear-leisure-pants", label: "Leisure Pants", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Pants" },
+    { id: "knitwear-leisure-shorts", label: "Leisure Shorts", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Shorts" },
+    { id: "knitwear-scarf", label: "Scarf", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Scarf" },
+    { id: "knitwear-beanie", label: "Beanie", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Beanie" },
+  ],
+};
+
+const onePageOrderSections = [
+  { id: "primary", label: "Primary info", required: true },
+  { id: "fitProfile", label: "FitProfile", required: true },
+  { id: "fitTools", label: "FitTools", required: false },
+  { id: "design", label: "Design", required: true },
+  { id: "payment", label: "Payment", required: false },
+  { id: "orderDetails", label: "Order Details", required: true },
+];
+
+const onePageOrderSelectOptions = {
+  salesAssociate: [],
+  item: ["Knitwear", "2-Piece Suit", "Trousers"],
+  knitwearItem: ["Knit", "Leisure Pants", "Leisure Shorts", "Scarf", "Beanie"],
+  quantity: ["1", "2", "3", "4"],
+  model: ["V-Neck", "Crew neck", "Cardigan", "Polo knit"],
+  trouserItem: ["Trousers", "Chino", "Jeans/5 Pockets", "Bermudas"],
+  trouserModel: ["Design from scratch", "Dress", "Smart", "Drawstring"],
+  trouserMake: ["Traditional", "Sartorial"],
+  make: ["Traditional", "Modern", "Soft Make"],
+  knitType: ["Single Yarn Solid", "Half English Rib", "Cable Knit", "Fine Gauge"],
+  tryOnFit: ["K40", "K42", "Regular", "Slim", "Comfort"],
+  tryOnSize: ["48", "50", "52", "54", "56"],
+  trouserTryOnFit: ["T40", "T30"],
+  trouserTryOnSize: Array.from({ length: 21 }, (_, index) => String(30 + index * 2)),
+  hipWaist: ["0", "+0.5", "+1.0", "-0.5", "-1.0"],
+  length: ["0", "+1.0", "+2.0", "-1.0", "-2.0"],
+  sleeveLength: ["0", "+1.0", "+2.0", "-1.0", "-2.0"],
+  shortSleeveLength: ["0", "+1.0", "-1.0"],
+  neckline: ["V-neck (1.8 cm)", "Crew neck", "Zip neck", "Roll neck"],
+  armholeStyle: ["Classic", "Relaxed", "High Armhole"],
+  detailing: ["Standard Rib", "Plain Hem", "Contrast Rib"],
+  sleeveStyle: ["", "Long Sleeve", "Short Sleeve"],
+  chestPocket: ["None", "Left Chest Pocket"],
+  sidePockets: ["None", "Side Pockets"],
+  contrastOption: ["No Contrast", "Contrast Cuffs", "Contrast Collar"],
+  contrastColor: ["No Contrast", "Navy", "Charcoal", "Cream"],
+  monogramPosition: ["", "Inside neck", "Chest", "Cuff"],
+  monogramColour: ["", "Tone on tone", "Navy", "Charcoal", "Cream"],
+  monogramFont: ["", "Block", "Script", "Serif"],
+  brandingHangtag: ["", "Hangtag", "Private label hangtag", "No hangtag"],
+  trouserDetailing: ["Dress", "Smart", "Drawstring", "Design from scratch"],
+  trouserWaistband: ["Buckle & Strap (Metal)", "Button", "Drawstring", "Elasticated"],
+  trouserExtendedWaistband: ["No", "Yes"],
+  trouserBuckleLoop: ["No", "Yes"],
+  trouserClosure: ["Zip Fly", "Button Fly"],
+  trouserClosingButton: ["", "Horn", "Mother of Pearl", "Metal"],
+  trouserPocketLining: ["POC002 Off-White", "POC001 White", "POC010 Navy", "Self Fabric"],
+  trouserFrontStyle: ["Flat Front", "Single Pleat", "Double Pleat"],
+  trouserPleatDirection: ["No Pleats", "Forward", "Reverse"],
+  trouserPleatDepth: ["No Pleats", "Shallow", "Standard", "Deep"],
+  trouserPressedCrease: ["No", "Yes"],
+  trouserPintuck: ["No", "Yes"],
+  trouserSidePockets: ["Slanted", "Straight", "Western"],
+  trouserCargoPockets: ["None", "Single", "Double"],
+  trouserBackPockets: ["Welt with Button", "Welt", "Patch", "None"],
+  trouserHemFinish: ["Standard (1,2 cm)", "Turn-Up", "Ribbed", "Plain"],
+  trouserBackPatch: ["None", "Leather Patch", "Fabric Patch"],
+  paymentMethod: ["", "Cash", "Card", "Bank transfer", "Invoice"],
+  occasion: ["", "Wedding", "Business", "Casual", "Travel"],
+};
+
+const onePageOrderMeasurements = [
+  ["Shoulder", "44.0", "44.0"],
+  ["1/2 Chest", "56.0", "56.0"],
+  ["1/2 Hip", "46.0", "46.0"],
+  ["1/2 Cuff long sleeve", "11.0", "11.0"],
+  ["1/2 Cuff short sleeve", "17.0", "17.0"],
+  ["Sleeve length long", "65.0", "65.0"],
+  ["Sleeve length short", "25.0", "25.0"],
+  ["Length", "69.0", "69.0"],
+];
+
+const onePageOrderTrouserMeasurements = [
+  ["Waist", "42.0", "42.0"],
+  ["Seat", "51.0", "51.0"],
+  ["Thigh", "31.0", "31.0"],
+  ["Knee", "22.5", "22.5"],
+  ["Bottom", "18.5", "18.5"],
+  ["Inside leg", "78.0", "78.0"],
+];
+
+const onePageOrderTrouserFitToolRows = [
+  ["waist", "Waist bigger", "Waist smaller"],
+  ["hip", "Hip bigger", "Hip smaller"],
+  ["seat", "Seat bigger", "Seat smaller"],
+  ["thigh", "Thigh bigger", "Thigh smaller"],
+  ["knee", "Knee bigger", "Knee smaller"],
+  ["bottomWidth", "Bottom width bigger", "Bottom width smaller"],
+  ["frontRise", "Front rise higher", "Front rise lower"],
+  ["backRise", "Back rise higher", "Back rise lower"],
+  ["length", "Length longer", "Length shorter"],
+];
+
 const desiredMeasurements = [
   ["Shoulder", "47.7", "47.2"],
   ["1/2 Back", "23.7", "23.5"],
@@ -2319,6 +2521,7 @@ function applyLanguage() {
   if (state.currentPage === "overview") renderRows();
   if (state.currentPage === "detail") renderCustomerAccount(customers.find((customer) => customer.id === state.selectedCustomerId) || customers[0]);
   if (state.currentPage === "createFitProfile") renderCreateFitProfileWorkspace();
+  if (state.currentPage === "onePageOrder") renderOnePageOrderPage();
   if (state.currentPage === "orders") renderOrdersPage();
   if (state.currentPage === "orderDetail") renderOrderDetailTab();
   if (state.currentPage === "fabricInventory") renderFabricInventory();
@@ -2333,6 +2536,10 @@ function applyLanguage() {
 
 function fullName(customer) {
   return `${customer.firstName} ${customer.lastName}`.trim();
+}
+
+function currentCustomer() {
+  return customers.find((customer) => customer.id === state.selectedCustomerId) || customers[0];
 }
 
 function customerEmailDisplay(customer) {
@@ -2361,8 +2568,21 @@ function icon(name, classes = "") {
     flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><path d="M4 22V15"></path>',
     printer: '<path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v8H6z"></path>',
     refresh: '<path d="M21 12a9 9 0 0 1-15.7 6.1L3 16"></path><path d="M3 21v-5h5"></path><path d="M3 12a9 9 0 0 1 15.7-6.1L21 8"></path><path d="M21 3v5h-5"></path>',
+    plus: '<path d="M12 5v14M5 12h14"></path>',
+    minus: '<path d="M5 12h14"></path>',
+    check: '<path d="m5 12 4 4L19 6"></path>',
+    square: '<rect x="5" y="5" width="14" height="14" rx="2"></rect>',
+    "check-square": '<rect x="5" y="5" width="14" height="14" rx="2"></rect><path d="m8.5 12 2.5 2.5L16 9"></path>',
+    "minus-square": '<rect x="5" y="5" width="14" height="14" rx="2"></rect><path d="M9 12h6"></path>',
+    "arrow-left": '<path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path>',
+    "chevron-left": '<path d="m15 18-6-6 6-6"></path>',
+    "chevron-right": '<path d="m9 18 6-6-6-6"></path>',
+    "chevron-down": '<path d="m6 9 6 6 6-6"></path>',
+    "chevrons-left": '<path d="m11 17-5-5 5-5"></path><path d="m18 17-5-5 5-5"></path>',
+    "chevrons-right": '<path d="m6 17 5-5-5-5"></path><path d="m13 17 5-5-5-5"></path>',
+    x: '<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>',
   };
-  return `<svg class="icon ${classes}" viewBox="0 0 24 24">${icons[name]}</svg>`;
+  return `<svg class="icon ${classes}" viewBox="0 0 24 24">${icons[name] || ""}</svg>`;
 }
 
 function fieldValue(customer, key) {
@@ -2542,11 +2762,6 @@ function renderOrdersSelectMenu() {
   const activeButton = document.querySelector(`[data-orders-select="${state.activeOrdersSelect}"][data-select-instance="${state.activeOrdersSelectInstance}"]`);
   const values = state.ordersFilters[state.activeOrdersSelect] || new Set();
   const options = ordersSelectOptionsForCurrentView(state.activeOrdersSelect);
-  const width = Math.min(Math.max(state.activeOrdersSelectPosition?.width || 240, 260), window.innerWidth - 32);
-  const left = Math.min(Math.max(state.activeOrdersSelectPosition?.left || 16, 16), window.innerWidth - width - 16);
-  menu.style.left = `${left}px`;
-  menu.style.top = `${state.activeOrdersSelectPosition?.top || 0}px`;
-  menu.style.width = `${width}px`;
   menu.innerHTML = `
     <button class="orders-select-option fabric-select-option ${!values.size ? "selected" : ""} flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left hover:bg-secondary" data-value="">
       <span>${activeButton?.dataset.filterPlaceholder || "Any"}</span>
@@ -2568,7 +2783,7 @@ function renderOrdersSelectMenu() {
       })
       .join("")}
   `;
-  menu.classList.add("open");
+  if (activeButton) positionFloatingSelectMenu(menu, activeButton, 260);
   translatePage(menu);
 }
 
@@ -3833,6 +4048,1817 @@ function renderOrderDetail(orderId) {
   setPage("orderDetail");
 }
 
+function onePageOrderSelectButton(selectId, value, disabled = false, disabledTitle = "Complete the previous field first.") {
+  const label = value || "Select";
+  const open = state.activeOnePageOrderSelect === selectId;
+  return `
+    <button class="field fabric-select flex items-center justify-between gap-3 text-left ${disabled ? "opacity-60" : ""}" data-one-page-order-select="${escapeAttr(selectId)}" type="button" aria-haspopup="listbox" aria-expanded="${open ? "true" : "false"}" ${disabled ? `disabled title="${escapeAttr(disabledTitle)}"` : ""}>
+      <span class="min-w-0 truncate">${escapeHtml(label)}</span>
+      ${icon("chevron-down", "h-4 w-4 shrink-0 text-muted-foreground")}
+    </button>
+  `;
+}
+
+function onePageOrderIsTrouserFlow() {
+  return state.onePageOrderItem === "trousers" || state.onePageOrderFields.item === "Trousers";
+}
+
+function onePageOrderDisplayItem() {
+  if (onePageOrderIsTrouserFlow()) return state.onePageOrderFields.trouserItem || "Trousers";
+  if (state.onePageOrderItem === "knitwear") return state.onePageOrderFields.knitwearItem || "Knitwear";
+  return state.onePageOrderFields.item || "CustomMade";
+}
+
+function onePageOrderTrouserPrimaryReady() {
+  const fields = state.onePageOrderFields;
+  ensureOnePageOrderLines();
+  return Boolean(fields.salesAssociate && fields.item && fields.quantity && fields.trouserItem) && state.onePageOrderLines.every((line) => line.model && line.make && line.fabric);
+}
+
+function onePageOrderFitToolValueOptions(direction) {
+  return direction === "minus"
+    ? ["0.00", "-0.50", "-1.00", "-1.50", "-2.00", "-2.50", "-3.00"]
+    : ["0.00", "+0.50", "+1.00", "+1.50", "+2.00", "+2.50", "+3.00"];
+}
+
+function onePageOrderOptionsForSelect(selectId) {
+  const parts = selectId.split(":");
+  if (selectId === "field:salesAssociate") return salesAssociates.map((associate) => associate.name);
+  if (selectId === "field:trouserItem") return onePageOrderSelectOptions.trouserItem;
+  if (selectId === "field:tryOnFit" && onePageOrderIsTrouserFlow()) return onePageOrderSelectOptions.trouserTryOnFit;
+  if (selectId === "field:tryOnSize" && onePageOrderIsTrouserFlow()) return onePageOrderSelectOptions.trouserTryOnSize;
+  if (parts[0] === "line") {
+    const key = parts[2];
+    if (onePageOrderIsTrouserFlow() && key === "model") return onePageOrderSelectOptions.trouserModel;
+    if (onePageOrderIsTrouserFlow() && key === "make") return ["", ...onePageOrderSelectOptions.trouserMake];
+    return key === "model" ? onePageOrderSelectOptions[key] || [] : ["", ...(onePageOrderSelectOptions[key] || []).filter(Boolean)];
+  }
+  if (parts[0] === "trouserFit") return onePageOrderFitToolValueOptions(parts[1]);
+  if (parts[0] === "design") return onePageOrderSelectOptions[parts[2]] || [];
+  if (parts[0] === "payment") return onePageOrderSelectOptions[parts[2]] || [];
+  if (parts[0] === "detail") return onePageOrderSelectOptions[parts[2]] || [];
+  return onePageOrderSelectOptions[parts[1]] || [];
+}
+
+function onePageOrderValueForSelect(selectId) {
+  const parts = selectId.split(":");
+  if (parts[0] === "line") return onePageOrderLineValue(Number(parts[1]), parts[2]);
+  if (parts[0] === "trouserFit") return state.onePageOrderTrouserFitTools[`${parts[1]}:${parts[2]}`] || "0.00";
+  if (parts[0] === "design") return onePageOrderDesignValue(Number(parts[1]), parts[2]);
+  if (parts[0] === "payment") return onePageOrderPaymentValue(Number(parts[1]), parts[2]);
+  if (parts[0] === "detail") return onePageOrderDetailValue(Number(parts[1]), parts[2]);
+  return state.onePageOrderFields[parts[1]] ?? "";
+}
+
+function renderOnePageOrderSelectMenu() {
+  const menu = el("onePageOrderSelectMenu");
+  if (!menu) return;
+  document.querySelectorAll("[data-one-page-order-select]").forEach((button) => {
+    button.setAttribute("aria-expanded", state.activeOnePageOrderSelect === button.dataset.onePageOrderSelect ? "true" : "false");
+  });
+  if (!state.activeOnePageOrderSelect) {
+    menu.classList.remove("open");
+    return;
+  }
+
+  const selectId = state.activeOnePageOrderSelect;
+  const activeButton = Array.from(document.querySelectorAll("[data-one-page-order-select]")).find((button) => button.dataset.onePageOrderSelect === selectId);
+  if (!activeButton) {
+    state.activeOnePageOrderSelect = null;
+    menu.classList.remove("open");
+    return;
+  }
+
+  const selectedValue = onePageOrderValueForSelect(selectId);
+  const options = onePageOrderOptionsForSelect(selectId);
+  menu.innerHTML = options
+    .map(
+      (option) => `
+        <button class="one-page-order-select-option fabric-select-option ${selectedValue === option ? "selected" : ""} flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left hover:bg-secondary" data-value="${escapeAttr(option)}" type="button">
+          <span class="min-w-0 truncate">${escapeHtml(option || "Select")}</span>
+          ${selectedValue === option ? icon("check", "h-4 w-4 shrink-0 text-primary") : ""}
+        </button>
+      `,
+    )
+    .join("");
+  positionFloatingSelectMenu(menu, activeButton);
+  menu.classList.add("open");
+  translatePage(menu);
+}
+
+function openOnePageOrderSelect(button) {
+  if (button.disabled) return;
+  const rect = button.getBoundingClientRect();
+  const selectId = button.dataset.onePageOrderSelect;
+  const isOpen = state.activeOnePageOrderSelect === selectId;
+  state.activeOnePageOrderSelect = isOpen ? null : selectId;
+  state.activeOnePageOrderSelectPosition = isOpen ? null : { left: rect.left, top: rect.bottom + 6, width: rect.width };
+  renderOnePageOrderSelectMenu();
+}
+
+function updateOnePageOrderSelectValue(selectId, value) {
+  const parts = selectId.split(":");
+  if (parts[0] === "line") {
+    updateOnePageOrderLine(Number(parts[1]), parts[2], value);
+  } else if (parts[0] === "trouserFit") {
+    state.onePageOrderTrouserFitTools[`${parts[1]}:${parts[2]}`] = value;
+  } else if (parts[0] === "design") {
+    updateOnePageOrderDesign(Number(parts[1]), parts[2], value);
+  } else if (parts[0] === "payment") {
+    updateOnePageOrderPayment(Number(parts[1]), parts[2], value);
+  } else if (parts[0] === "detail") {
+    updateOnePageOrderDetail(Number(parts[1]), parts[2], value);
+  } else {
+    updateOnePageOrderField(parts[1], value);
+  }
+}
+
+function onePageOrderField(id, label, type = "select", wide = false) {
+  const value = state.onePageOrderFields[id] ?? "";
+  const selectDisabled = id === "tryOnSize" && !state.onePageOrderFields.tryOnFit;
+  const selectDisabledTitle = id === "tryOnSize" ? "Select a TryOn Fit first." : undefined;
+  const control =
+    type === "input"
+      ? `<input class="field" data-one-page-order-field="${id}" value="${escapeHtml(value)}" />`
+      : type === "checkbox"
+        ? `<label class="flex items-center gap-2 text-sm"><input class="check" data-one-page-order-field="${id}" type="checkbox" ${value ? "checked" : ""} />${escapeHtml(label)}</label>`
+        : onePageOrderSelectButton(`field:${id}`, value, selectDisabled, selectDisabledTitle);
+  if (type === "checkbox") return `<div class="${wide ? "md:col-span-2" : ""}">${control}</div>`;
+  return `
+    <label class="grid gap-1.5 ${wide ? "md:col-span-2" : ""}">
+      <span class="text-sm font-medium text-muted-foreground">${escapeHtml(label)}</span>
+      ${control}
+    </label>
+  `;
+}
+
+function onePageOrderLineDefaults(index = 0) {
+  if (onePageOrderIsTrouserFlow()) {
+    return {
+      model: state.onePageOrderFields.model || "",
+      make: state.onePageOrderFields.make || "",
+      fabric: index === 0 ? state.onePageOrderFields.fabric || "" : "",
+      knitType: "",
+    };
+  }
+  return {
+    model: state.onePageOrderFields.model || "V-Neck",
+    make: state.onePageOrderFields.make || "Traditional",
+    fabric: index === 0 ? state.onePageOrderFields.fabric || "K10139 heathered grey cashmere" : "",
+    knitType: state.onePageOrderFields.knitType || "Single Yarn Solid",
+  };
+}
+
+function onePageOrderDesignDefaults() {
+  if (onePageOrderIsTrouserFlow()) {
+    return {
+      trouserDetailing: state.onePageOrderFields.trouserDetailing || "Dress",
+      trouserWaistband: state.onePageOrderFields.trouserWaistband || "Buckle & Strap (Metal)",
+      trouserExtendedWaistband: state.onePageOrderFields.trouserExtendedWaistband || "No",
+      trouserBuckleLoop: state.onePageOrderFields.trouserBuckleLoop || "No",
+      trouserClosure: state.onePageOrderFields.trouserClosure || "Zip Fly",
+      trouserClosingButton: state.onePageOrderFields.trouserClosingButton || "",
+      trouserPocketLining: state.onePageOrderFields.trouserPocketLining || "POC002 Off-White",
+      trouserFrontStyle: state.onePageOrderFields.trouserFrontStyle || "Flat Front",
+      trouserPleatDirection: state.onePageOrderFields.trouserPleatDirection || "No Pleats",
+      trouserPleatDepth: state.onePageOrderFields.trouserPleatDepth || "No Pleats",
+      trouserPressedCrease: state.onePageOrderFields.trouserPressedCrease || "No",
+      trouserPintuck: state.onePageOrderFields.trouserPintuck || "No",
+      trouserSidePockets: state.onePageOrderFields.trouserSidePockets || "Slanted",
+      trouserCargoPockets: state.onePageOrderFields.trouserCargoPockets || "None",
+      trouserBackPockets: state.onePageOrderFields.trouserBackPockets || "Welt with Button",
+      trouserHemFinish: state.onePageOrderFields.trouserHemFinish || "Standard (1,2 cm)",
+      trouserBackPatch: state.onePageOrderFields.trouserBackPatch || "None",
+      monogram: false,
+      monogramEnabled: false,
+      monogramPosition: "",
+      monogramColour: "",
+      monogramFont: "",
+      monogramText: "",
+      branding: false,
+      brandingEnabled: false,
+      brandingHangtag: "",
+    };
+  }
+  return {
+    neckline: state.onePageOrderFields.neckline || "V-neck (1.8 cm)",
+    armholeStyle: state.onePageOrderFields.armholeStyle || "Classic",
+    detailing: state.onePageOrderFields.detailing || "Standard Rib",
+    sleeveStyle: state.onePageOrderFields.sleeveStyle || "",
+    chestPocket: state.onePageOrderFields.chestPocket || "None",
+    sidePockets: state.onePageOrderFields.sidePockets || "None",
+    contrastOption: state.onePageOrderFields.contrastOption || "No Contrast",
+    contrastColor: state.onePageOrderFields.contrastColor || "No Contrast",
+    monogram: false,
+    monogramEnabled: false,
+    monogramPosition: "",
+    monogramColour: "",
+    monogramFont: "",
+    monogramText: "",
+    branding: false,
+    brandingEnabled: false,
+    brandingHangtag: "",
+  };
+}
+
+function onePageOrderPaymentDefaults() {
+  return {
+    discount: "0",
+    serviceCharge: "0",
+    downPayment: "0.00",
+    paymentMethod: "",
+  };
+}
+
+function onePageOrderDetailDefaults() {
+  return {
+    shopOrderNumber: state.onePageOrderFields.shopOrderNumber || "",
+    occasion: state.onePageOrderFields.occasion || "",
+  };
+}
+
+function ensureOnePageOrderLines() {
+  const quantity = Math.max(1, Number(state.onePageOrderFields.quantity) || 1);
+  while (state.onePageOrderLines.length < quantity) {
+    state.onePageOrderLines.push(onePageOrderLineDefaults(state.onePageOrderLines.length));
+  }
+  if (state.onePageOrderLines.length > quantity) state.onePageOrderLines = state.onePageOrderLines.slice(0, quantity);
+  if (!state.onePageOrderLines.length) state.onePageOrderLines.push(onePageOrderLineDefaults(0));
+  ensureOnePageOrderDesigns(quantity);
+  ensureOnePageOrderPaymentDetails(quantity);
+}
+
+function ensureOnePageOrderDesigns(quantity = Math.max(1, Number(state.onePageOrderFields.quantity) || 1)) {
+  while (state.onePageOrderDesigns.length < quantity) {
+    state.onePageOrderDesigns.push(onePageOrderDesignDefaults());
+  }
+  if (state.onePageOrderDesigns.length > quantity) state.onePageOrderDesigns = state.onePageOrderDesigns.slice(0, quantity);
+  if (!state.onePageOrderDesigns.length) state.onePageOrderDesigns.push(onePageOrderDesignDefaults());
+}
+
+function ensureOnePageOrderPaymentDetails(quantity = Math.max(1, Number(state.onePageOrderFields.quantity) || 1)) {
+  while (state.onePageOrderPayments.length < quantity) {
+    state.onePageOrderPayments.push(onePageOrderPaymentDefaults());
+  }
+  while (state.onePageOrderDetails.length < quantity) {
+    state.onePageOrderDetails.push(onePageOrderDetailDefaults());
+  }
+  if (state.onePageOrderPayments.length > quantity) state.onePageOrderPayments = state.onePageOrderPayments.slice(0, quantity);
+  if (state.onePageOrderDetails.length > quantity) state.onePageOrderDetails = state.onePageOrderDetails.slice(0, quantity);
+  if (!state.onePageOrderPayments.length) state.onePageOrderPayments.push(onePageOrderPaymentDefaults());
+  if (!state.onePageOrderDetails.length) state.onePageOrderDetails.push(onePageOrderDetailDefaults());
+}
+
+function onePageOrderLineValue(index, key) {
+  ensureOnePageOrderLines();
+  return state.onePageOrderLines[index]?.[key] ?? "";
+}
+
+function onePageOrderDesignValue(index, key) {
+  ensureOnePageOrderDesigns();
+  return state.onePageOrderDesigns[index]?.[key] ?? "";
+}
+
+function onePageOrderPaymentValue(index, key) {
+  ensureOnePageOrderPaymentDetails();
+  return state.onePageOrderPayments[index]?.[key] ?? "";
+}
+
+function onePageOrderDetailValue(index, key) {
+  ensureOnePageOrderPaymentDetails();
+  return state.onePageOrderDetails[index]?.[key] ?? "";
+}
+
+function updateOnePageOrderDesign(index, key, value) {
+  ensureOnePageOrderDesigns();
+  state.onePageOrderDesigns[index] = {
+    ...(state.onePageOrderDesigns[index] || onePageOrderDesignDefaults()),
+    [key]: value,
+  };
+  if (index === 0) state.onePageOrderFields[key] = value;
+}
+
+function updateOnePageOrderPayment(index, key, value) {
+  ensureOnePageOrderPaymentDetails();
+  state.onePageOrderPayments[index] = {
+    ...(state.onePageOrderPayments[index] || onePageOrderPaymentDefaults()),
+    [key]: value,
+  };
+}
+
+function updateOnePageOrderDetail(index, key, value) {
+  ensureOnePageOrderPaymentDetails();
+  state.onePageOrderDetails[index] = {
+    ...(state.onePageOrderDetails[index] || onePageOrderDetailDefaults()),
+    [key]: value,
+  };
+  if (index === 0) state.onePageOrderFields[key] = value;
+}
+
+function copyOnePageOrderDesignFieldToAll(key) {
+  ensureOnePageOrderDesigns();
+  const value = onePageOrderDesignValue(0, key);
+  state.onePageOrderDesigns = state.onePageOrderDesigns.map((design) => ({ ...design, [key]: value }));
+  state.onePageOrderFields[key] = value;
+}
+
+function toggleOnePageOrderDesignCopyRow(key) {
+  if (state.onePageOrderDesignCopyRows.has(key)) {
+    state.onePageOrderDesignCopyRows.delete(key);
+  } else {
+    state.onePageOrderDesignCopyRows.add(key);
+    copyOnePageOrderDesignFieldToAll(key);
+  }
+}
+
+function setAllOnePageOrderDesignCopyRows(enabled, keys) {
+  state.onePageOrderDesignCopyRows = enabled ? new Set(keys) : new Set();
+  if (enabled) keys.forEach((key) => copyOnePageOrderDesignFieldToAll(key));
+}
+
+function copyOnePageOrderDesignToAll(index) {
+  ensureOnePageOrderDesigns();
+  const source = state.onePageOrderDesigns[index] || onePageOrderDesignDefaults();
+  state.onePageOrderDesigns = state.onePageOrderDesigns.map(() => ({ ...source }));
+  Object.keys(source).forEach((key) => {
+    if (key in state.onePageOrderFields) state.onePageOrderFields[key] = source[key];
+  });
+}
+
+const onePageOrderFakeFabrics = [
+  { code: "K10139", description: "heathered grey cashmere", subtitle: "Cashmere", collection: "Knitwear", season: "Core", status: "In stock", color: "#9ca3af" },
+  { code: "K10042", description: "midnight merino wool", subtitle: "Merino", collection: "Knitwear", season: "Core", status: "In stock", color: "#1f2937" },
+  { code: "K10077", description: "oatmeal cashmere blend", subtitle: "Cashmere blend", collection: "Knitwear", season: "Autumn", status: "Low stock", color: "#d6c7ae" },
+  { code: "K10214", description: "forest green fine gauge", subtitle: "Fine gauge", collection: "Knitwear", season: "Winter", status: "In stock", color: "#166534" },
+  { code: "K10301", description: "navy cable cotton cashmere", subtitle: "Cable knit", collection: "Knitwear", season: "Core", status: "In stock", color: "#1e3a8a" },
+  { code: "K10422", description: "charcoal half English rib", subtitle: "Half English rib", collection: "Knitwear", season: "Winter", status: "Incoming", color: "#374151" },
+  { code: "CH-WASH-014", description: "stone cotton twill", subtitle: "Chino wash", collection: "Trousers", season: "Core", status: "In stock", color: "#c2b59b" },
+  { code: "CH-WASH-027", description: "navy compact twill", subtitle: "Chino wash", collection: "Trousers", season: "Core", status: "In stock", color: "#1f2937" },
+  { code: "CH-WASH-041", description: "olive garment dyed stretch", subtitle: "Chino wash", collection: "Trousers", season: "Summer", status: "Low stock", color: "#69745d" },
+  { code: "DN-WASH-005", description: "rinse indigo denim", subtitle: "Denim wash", collection: "Jeans/5 Pockets", season: "Core", status: "In stock", color: "#23395d" },
+  { code: "DN-WASH-019", description: "mid blue stone wash", subtitle: "Denim wash", collection: "Jeans/5 Pockets", season: "Core", status: "Incoming", color: "#5d7fa3" },
+  { code: "DN-WASH-032", description: "black comfort denim", subtitle: "Denim wash", collection: "Jeans/5 Pockets", season: "Winter", status: "In stock", color: "#111827" },
+];
+
+function onePageOrderFabricMatches(query) {
+  const normalized = query.trim().toLowerCase();
+  const source = [
+    ...onePageOrderFakeFabrics,
+    ...fabricInventory.filter((fabric) => !onePageOrderFakeFabrics.some((fake) => fake.code === fabric.code)),
+  ];
+  const preferred = onePageOrderIsTrouserFlow()
+    ? source.filter((fabric) => ["Trousers", "Jeans/5 Pockets"].includes(fabric.collection))
+    : source.filter((fabric) => fabric.collection === "Knitwear");
+  const remaining = source.filter((fabric) => !preferred.includes(fabric));
+  const rankedSource = [...preferred, ...remaining];
+  if (!normalized) return rankedSource.slice(0, 8);
+  return rankedSource
+    .filter((fabric) =>
+      [fabric.code, fabric.subtitle, fabric.description, fabric.collection, fabric.season, fabric.status]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalized)),
+    )
+    .slice(0, 8);
+}
+
+function onePageOrderFabricSearchMenu(index, value) {
+  if (state.activeOnePageFabricSearch !== index) return "";
+  const matches = onePageOrderFabricMatches(value);
+  const position = state.activeOnePageFabricSearchPosition;
+  const positionStyle = position
+    ? `position: fixed; left: ${position.left}px; top: ${position.top}px; width: ${position.width}px; max-height: ${position.maxHeight}px;`
+    : "";
+  const positionClass = position
+    ? "fixed z-[8000]"
+    : "absolute left-0 right-0 top-[calc(100%+8px)] z-[8000] max-h-80";
+  return `
+    <div class="${positionClass} overflow-auto rounded-[10px] border border-border bg-card p-1 shadow-xl" style="${positionStyle}" data-one-page-fabric-menu="${index}">
+      ${
+        matches.length
+          ? matches
+              .map(
+                (fabric) => `
+                  <button class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-secondary" data-one-page-fabric-option="${escapeAttr(fabric.code)}" data-one-page-fabric-index="${index}" type="button">
+                    <span class="h-9 w-9 shrink-0 rounded-md border border-border" style="background:${escapeAttr(fabric.color)}"></span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate text-sm font-semibold">${escapeHtml(fabric.code)}</span>
+                      <span class="block truncate text-xs text-muted-foreground">${escapeHtml(fabric.description)} · ${escapeHtml(fabric.collection)} · ${escapeHtml(fabric.season)}</span>
+                    </span>
+                    <span class="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">${escapeHtml(fabric.status || "Available")}</span>
+                  </button>
+                `,
+              )
+              .join("")
+          : `<div class="px-3 py-4 text-sm text-muted-foreground">No fabrics found.</div>`
+      }
+    </div>
+  `;
+}
+
+function onePageOrderFabricInput(index, value, disabled, title) {
+  const placeholder = onePageOrderIsTrouserFlow() ? "Search fabric/wash" : "Search fabric";
+  return `
+    <div class="relative" data-one-page-fabric-picker="${index}">
+      <input class="field pr-10" data-one-page-fabric-input="${index}" data-one-page-order-line="${index}" data-one-page-order-line-field="fabric" value="${escapeHtml(value)}" placeholder="${escapeAttr(placeholder)}" autocomplete="off" ${disabled ? "disabled" : ""} title="${escapeAttr(title)}" />
+      ${icon("search", "pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground")}
+      ${onePageOrderFabricSearchMenu(index, value)}
+    </div>
+  `;
+}
+
+function setOnePageFabricSearchPosition(index, input) {
+  if (!input) return;
+  const rect = input.getBoundingClientRect();
+  const viewportPadding = 16;
+  const gap = 8;
+  const width = Math.min(Math.max(rect.width, 260), window.innerWidth - viewportPadding * 2);
+  const left = Math.min(Math.max(rect.left, viewportPadding), window.innerWidth - width - viewportPadding);
+  const spaceBelow = window.innerHeight - rect.bottom - viewportPadding - gap;
+  const spaceAbove = rect.top - viewportPadding - gap;
+  const opensUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+  const maxHeight = Math.min(320, Math.max(160, opensUp ? spaceAbove : spaceBelow));
+  state.activeOnePageFabricSearch = index;
+  state.activeOnePageFabricSearchPosition = {
+    left,
+    top: opensUp ? Math.max(viewportPadding, rect.top - gap - maxHeight) : rect.bottom + gap,
+    width,
+    maxHeight,
+  };
+}
+
+function onePageOrderLineField(index, key, label, type = "select", disabled = false) {
+  const value = onePageOrderLineValue(index, key);
+  const title = disabled ? "Complete the previous field first." : "";
+  const control =
+    key === "fabric"
+      ? onePageOrderFabricInput(index, value, disabled, title)
+      : type === "input"
+      ? `<input class="field" data-one-page-order-line="${index}" data-one-page-order-line-field="${key}" value="${escapeHtml(value)}" ${disabled ? "disabled" : ""} title="${escapeAttr(title)}" />`
+      : onePageOrderSelectButton(`line:${index}:${key}`, value, disabled);
+  return `
+    <label class="grid gap-1.5">
+      <span class="text-sm font-medium text-muted-foreground">${escapeHtml(label)}</span>
+      ${control}
+    </label>
+  `;
+}
+
+function onePageOrderLineControl(index, key, type = "select", disabled = false) {
+  const value = onePageOrderLineValue(index, key);
+  const title = disabled ? "Complete the previous field first." : "";
+  if (key === "fabric") return onePageOrderFabricInput(index, value, disabled, title);
+  if (type === "input") {
+    return `<input class="field" data-one-page-order-line="${index}" data-one-page-order-line-field="${key}" value="${escapeHtml(value)}" ${disabled ? "disabled" : ""} title="${escapeAttr(title)}" />`;
+  }
+  return onePageOrderSelectButton(`line:${index}:${key}`, value, disabled);
+}
+
+function onePageOrderTable(columns, rows, options = {}) {
+  const labelColumn = options.labelColumnWidth || 220;
+  const valueColumn = options.valueColumnMaxWidth && columns.length === 1
+    ? `minmax(220px, ${options.valueColumnMaxWidth}px)`
+    : "minmax(220px, 1fr)";
+  const gridColumns = `${labelColumn}px repeat(${columns.length}, ${valueColumn})`;
+  const wrapperClass = options.wrapperClass || "";
+  const minWidth = options.minWidth || 760;
+  const fitContents = Boolean(options.fitContents);
+  const gridWidthStyle = fitContents ? "width:max-content;" : `min-width:${minWidth}px;`;
+  const fitContentsStyle = fitContents ? 'style="width:max-content;max-width:100%;"' : "";
+  return `
+    <div class="order-scroll-shell ${wrapperClass}" ${fitContentsStyle}>
+    <div class="overflow-x-auto rounded-[10px] border border-border" ${fitContentsStyle}>
+      <div class="grid" style="grid-template-columns: ${gridColumns}; ${gridWidthStyle}">
+        <div class="sticky left-0 z-30 border-b border-border bg-secondary/35 px-4 py-3">
+          <div class="font-semibold">${escapeHtml(options.label || "Options")}</div>
+        </div>
+        ${columns
+          .map(
+            (column) => `
+              <div class="border-b border-l border-border bg-secondary/35 px-4 py-3">
+                <div class="font-semibold">${escapeHtml(column.title)}</div>
+                ${column.subtitle ? `<div class="mt-1 text-xs text-muted-foreground">${escapeHtml(column.subtitle)}</div>` : ""}
+              </div>
+            `,
+          )
+          .join("")}
+        ${rows
+          .map(
+            (row) => `
+              <div class="sticky left-0 z-20 border-b border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground">${escapeHtml(row.label)}</div>
+              ${columns
+                .map(
+                  (column) => `
+                    <div class="border-b border-l border-border p-3">
+                      ${row.render(column.index)}
+                    </div>
+                  `,
+                )
+                .join("")}
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+    </div>
+  `;
+}
+
+function onePageOrderBasicInfoGroup(index = 0, showTitle = false) {
+  const model = onePageOrderLineValue(index, "model");
+  const make = onePageOrderLineValue(index, "make");
+  const fabric = onePageOrderLineValue(index, "fabric");
+  return `
+    <div class="rounded-[10px] border border-border bg-secondary/20 p-4">
+      ${showTitle ? `<h3 class="mb-4 text-sm font-semibold">Order ${index + 1}</h3>` : ""}
+      <div class="grid gap-4 md:grid-cols-2">
+        ${onePageOrderLineField(index, "model", "Model")}
+        ${onePageOrderLineField(index, "make", "Make", "select", !model)}
+        ${onePageOrderLineField(index, "fabric", "Fabric", "input", !make)}
+        ${onePageOrderLineField(index, "knitType", "Knit type", "select", !fabric)}
+      </div>
+    </div>
+  `;
+}
+
+function onePageOrderBasicInfoMode() {
+  return "";
+}
+
+function syncOnePagePrimaryFieldsFromFirstLine() {
+  ensureOnePageOrderLines();
+  const first = state.onePageOrderLines[0] || onePageOrderLineDefaults(0);
+  const keys = onePageOrderIsTrouserFlow() ? ["model", "make", "fabric"] : ["model", "make", "fabric", "knitType"];
+  keys.forEach((key) => {
+    state.onePageOrderFields[key] = first[key] || "";
+  });
+}
+
+function resetOnePageOrderCollections() {
+  state.onePageOrderLines = [];
+  state.onePageOrderDesigns = [];
+  state.onePageOrderPayments = [];
+  state.onePageOrderDetails = [];
+  state.onePageOrderTrouserFitTools = {};
+  state.onePageOrderDesignCopyRows = new Set();
+  state.activeOnePageOrderSelect = null;
+  state.activeOnePageFabricSearch = null;
+  state.activeOnePageFabricSearchPosition = null;
+}
+
+function resetOnePageOrderForItem(itemId) {
+  const selected = onePageOrderItemOptions.find((option) => option.id === itemId) || onePageOrderItemOptions[1];
+  state.onePageOrderItem = selected.id;
+  state.onePageOrderFields = {
+    ...state.onePageOrderFields,
+    item: selected.item,
+    reviewed: false,
+  };
+  resetOnePageOrderCollections();
+  if (selected.id === "trousers") {
+    state.onePageOrderFields = {
+      ...state.onePageOrderFields,
+      knitwearItem: "",
+      trouserItem: "",
+      model: "",
+      make: "",
+      fabric: "",
+      knitType: "",
+      fitProfileMode: "create",
+      fitProfileName: "[Trouser] 03-Jul-2026",
+      fitProfileExisting: "",
+      tryOnFit: "",
+      tryOnSize: "",
+    };
+    state.onePageOrderCollapsedSections = new Set(["fitTools", "design", "payment", "orderDetails"]);
+  } else {
+    state.onePageOrderFields = {
+      ...state.onePageOrderFields,
+      knitwearItem: selected.id === "knitwear" ? "Knit" : "",
+      trouserItem: "",
+      model: "V-Neck",
+      make: "Traditional",
+      fabric: "K10139 heathered grey cashmere",
+      knitType: "Single Yarn Solid",
+      fitProfileMode: "create",
+      fitProfileName: "[Knit] 03-Jul-2026",
+      fitProfileExisting: "[Knit] 03-Jul-2026",
+      tryOnFit: "K40",
+      tryOnSize: "52",
+    };
+    state.onePageOrderCollapsedSections = new Set(["fitTools", "payment", "orderDetails"]);
+  }
+  ensureOnePageOrderLines();
+}
+
+function updateOnePageOrderField(key, value) {
+  const previousValue = state.onePageOrderFields[key];
+  if (key === "item") {
+    const item = onePageOrderItemOptions.find((option) => option.item === value);
+    if (item && item.id !== state.onePageOrderItem) {
+      resetOnePageOrderForItem(item.id);
+      return;
+    }
+  }
+  state.onePageOrderFields[key] = value;
+  if (key === "trouserItem" && previousValue !== value) {
+    state.onePageOrderFields.model = "";
+    state.onePageOrderFields.make = "";
+    state.onePageOrderFields.fabric = "";
+    state.onePageOrderFields.fitProfileName = value ? `[${value}] 03-Jul-2026` : "[Trouser] 03-Jul-2026";
+    resetOnePageOrderCollections();
+  }
+  if (key === "quantity") ensureOnePageOrderLines();
+}
+
+function updateOnePageOrderLine(index, key, value) {
+  ensureOnePageOrderLines();
+  const line = state.onePageOrderLines[index] || onePageOrderLineDefaults(index);
+  line[key] = value;
+  if (key === "model") {
+    line.make = "";
+    line.fabric = "";
+    line.knitType = "";
+  }
+  if (key === "make") {
+    line.fabric = "";
+    line.knitType = "";
+  }
+  if (key === "fabric") {
+    line.knitType = "";
+  }
+  state.onePageOrderLines[index] = line;
+  syncOnePagePrimaryFieldsFromFirstLine();
+}
+
+function onePageOrderFitProfileComplete() {
+  const fields = state.onePageOrderFields;
+  return fields.fitProfileMode === "search"
+    ? Boolean(fields.fitProfileExisting)
+    : Boolean(fields.fitProfileName && fields.tryOnFit && fields.tryOnSize);
+}
+
+function onePageOrderSectionComplete(sectionId) {
+  const fields = state.onePageOrderFields;
+  if (sectionId === "primary") {
+    ensureOnePageOrderLines();
+    if (onePageOrderIsTrouserFlow()) return onePageOrderTrouserPrimaryReady();
+    const itemReady = state.onePageOrderItem === "knitwear" ? Boolean(fields.knitwearItem) : Boolean(fields.item);
+    return Boolean(fields.salesAssociate && itemReady && fields.quantity) && state.onePageOrderLines.every((line) => line.model && line.make && line.fabric && line.knitType);
+  }
+  if (sectionId === "fitProfile") {
+    return onePageOrderFitProfileComplete();
+  }
+  if (sectionId === "fitTools") return onePageOrderFitProfileComplete();
+  if (sectionId === "design") {
+    ensureOnePageOrderDesigns();
+    if (onePageOrderIsTrouserFlow()) {
+      return state.onePageOrderDesigns.every((design) =>
+        Boolean(
+          design.trouserDetailing &&
+            design.trouserWaistband &&
+            design.trouserClosure &&
+            design.trouserClosingButton &&
+            design.trouserPocketLining &&
+            design.trouserFrontStyle &&
+            design.trouserSidePockets &&
+            design.trouserHemFinish,
+        ),
+      );
+    }
+    return state.onePageOrderDesigns.every((design) => design.neckline && design.armholeStyle && design.detailing && design.sleeveStyle && design.contrastOption);
+  }
+  if (sectionId === "orderDetails") {
+    ensureOnePageOrderPaymentDetails();
+    const visibleDetails = onePageOrderPerOrderEnabled() ? state.onePageOrderDetails : state.onePageOrderDetails.slice(0, 1);
+    return visibleDetails.every((detail) => detail.shopOrderNumber && detail.occasion);
+  }
+  return true;
+}
+
+function onePageOrderSectionNav(section) {
+  const sectionIndex = onePageOrderSections.findIndex((item) => item.id === section.id);
+  const previous = onePageOrderSections[sectionIndex - 1];
+  const next = onePageOrderSections[sectionIndex + 1];
+  const complete = onePageOrderSectionComplete(section.id);
+  const nextLabel = next ? `Continue to ${next.label}` : "Review order";
+  return `
+    <div class="mt-6 flex items-center justify-between gap-3 border-t border-border pt-4">
+      <button class="btn btn-soft gap-2" data-one-page-order-step-nav="${section.id}" data-one-page-order-step-target="${previous?.id || "primary"}" type="button">
+        ${icon("chevron-left", "h-4 w-4")}
+        <span>Back to ${escapeHtml(previous?.label || "Primary info")}</span>
+      </button>
+      <button class="btn btn-primary gap-2 ${complete ? "" : "opacity-60"}" data-one-page-order-step-nav="${section.id}" data-one-page-order-step-target="${next?.id || "review"}" type="button" ${complete ? "" : 'disabled title="Complete this section first."'}>
+        <span>${escapeHtml(nextLabel)}</span>
+        ${icon("chevron-right", "h-4 w-4")}
+      </button>
+    </div>
+  `;
+}
+
+function navigateOnePageOrderStep(currentSectionId, targetSectionId) {
+  if (currentSectionId) state.onePageOrderCollapsedSections.add(currentSectionId);
+  if (targetSectionId && !["primary", "review"].includes(targetSectionId)) {
+    state.onePageOrderCollapsedSections.delete(targetSectionId);
+  }
+  renderOnePageOrderPage();
+  if (targetSectionId === "review") {
+    showToast("Order summary ready to review.");
+    return;
+  }
+  requestAnimationFrame(() => {
+    const target = targetSectionId === "primary"
+      ? document.querySelector("#onePageOrderWorkspace > section")
+      : document.querySelector(`[data-one-page-order-section="${targetSectionId}"]`);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function onePageOrderSection(section, body) {
+  const collapsed = state.onePageOrderCollapsedSections.has(section.id);
+  const complete = onePageOrderSectionComplete(section.id);
+  const required = section.required || (onePageOrderIsTrouserFlow() && ["fitProfile", "fitTools", "design", "orderDetails"].includes(section.id));
+  const statusLabel = complete ? "Ready" : required ? "Required" : "Optional";
+  return `
+    <section class="overflow-hidden rounded-[10px] border border-primary/15 bg-card shadow-sm">
+      <button class="flex w-full items-center justify-between gap-3 border-b border-primary/10 bg-primary/[0.055] px-4 py-3 text-left transition hover:bg-primary/[0.08]" data-one-page-order-section="${section.id}" type="button">
+        <span class="flex items-center gap-3">
+          <span class="flex h-6 w-6 items-center justify-center rounded-md border border-primary/20 bg-card text-primary shadow-sm">
+            ${icon(collapsed ? "plus" : "minus", "h-3 w-3")}
+          </span>
+          <span class="font-semibold">${section.label}</span>
+        </span>
+        <span class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          ${icon(complete ? "check" : "square", `h-4 w-4 ${complete ? "text-emerald-600" : "text-muted-foreground"}`)}
+          <span>${statusLabel}</span>
+        </span>
+      </button>
+      <div class="${collapsed ? "hidden" : ""} bg-card p-4">
+        ${body}
+        ${onePageOrderSectionNav(section)}
+      </div>
+    </section>
+  `;
+}
+
+function onePageOrderPrimarySection() {
+  ensureOnePageOrderLines();
+  const quantity = Math.max(1, Number(state.onePageOrderFields.quantity) || 1);
+  const singleOrder = quantity === 1;
+  const isTrouser = onePageOrderIsTrouserFlow();
+  const isKnitwear = state.onePageOrderItem === "knitwear";
+  const orderColumns = state.onePageOrderLines.map((line, index) => ({
+    index,
+    title: `Order ${index + 1}`,
+    subtitle: line.fabric || (isTrouser ? "Fabric/wash required" : "Fabric required"),
+  }));
+  const trouserIntro = isTrouser && !state.onePageOrderFields.trouserItem
+    ? `<div class="rounded-[10px] border border-dashed border-primary/20 bg-primary/[0.045] p-4 text-sm text-muted-foreground">Select Chino or Jeans/5 Pockets to load model, make and Fabric/wash.</div>`
+    : "";
+  const basicInfo = isTrouser
+    ? state.onePageOrderFields.trouserItem
+      ? onePageOrderTable(
+          orderColumns,
+          [
+            { label: "Model", render: (index) => onePageOrderLineControl(index, "model") },
+            { label: "Make", render: (index) => onePageOrderLineControl(index, "make", "select", !onePageOrderLineValue(index, "model")) },
+            { label: "Fabric/wash", render: (index) => onePageOrderLineControl(index, "fabric", "input", !onePageOrderLineValue(index, "make")) },
+          ],
+          { label: state.onePageOrderFields.trouserItem, fitContents: singleOrder, labelColumnWidth: singleOrder ? 180 : 220, valueColumnMaxWidth: singleOrder ? 440 : null },
+        )
+      : trouserIntro
+    : quantity > 1
+      ? onePageOrderTable(
+          orderColumns,
+          [
+            { label: "Model", render: (index) => onePageOrderLineControl(index, "model") },
+            { label: "Make", render: (index) => onePageOrderLineControl(index, "make", "select", !onePageOrderLineValue(index, "model")) },
+            { label: "Fabric", render: (index) => onePageOrderLineControl(index, "fabric", "input", !onePageOrderLineValue(index, "make")) },
+            { label: "Knit type", render: (index) => onePageOrderLineControl(index, "knitType", "select", !onePageOrderLineValue(index, "fabric")) },
+          ],
+          { label: "Basic information" },
+        )
+      : onePageOrderBasicInfoGroup(0, false);
+  return `
+    <div class="space-y-5">
+      <div class="grid gap-4 md:grid-cols-3">
+        ${onePageOrderField("salesAssociate", "Sales associate")}
+        ${isTrouser ? onePageOrderField("trouserItem", "Item") : ""}
+        ${isKnitwear ? onePageOrderField("knitwearItem", "Item") : ""}
+        ${onePageOrderField("quantity", "Quantity")}
+      </div>
+      ${basicInfo}
+    </div>
+  `;
+}
+
+function onePageOrderFitProfileSection() {
+  const fields = state.onePageOrderFields;
+  const mode = fields.fitProfileMode === "search" ? "search" : "create";
+  const existingProfiles = onePageOrderIsTrouserFlow()
+    ? ["[Trouser] 03-Jul-2026", "[Trouser] 18-Jun-2026", "[Chino] 12-Jun-2026"]
+    : ["[Knit] 03-Jul-2026", "[Knit] 22-Jun-2026", "[Jacket] 22-Jun-2026"];
+  const query = (fields.fitProfileSearchQuery || "").trim().toLowerCase();
+  const filteredProfiles = existingProfiles.filter((profile) => profile.toLowerCase().includes(query));
+  return `
+    <div class="space-y-6">
+      <div class="inline-flex rounded-lg bg-secondary p-1">
+        <button class="customer-tab ${mode === "create" ? "active" : ""}" data-one-page-order-fit-mode="create" type="button">Create new FitProfile</button>
+        <button class="customer-tab ${mode === "search" ? "active" : ""}" data-one-page-order-fit-mode="search" type="button">Search existing FitProfile</button>
+      </div>
+      ${
+        mode === "search"
+          ? `
+            <div class="space-y-4">
+              <label class="grid gap-1.5">
+                <span class="text-sm font-medium">Search FitProfile</span>
+                <input class="field" data-one-page-order-field="fitProfileSearchQuery" value="${escapeAttr(fields.fitProfileSearchQuery || "")}" placeholder="Search by name" />
+              </label>
+              <div class="grid gap-2">
+                ${filteredProfiles.length
+                  ? filteredProfiles
+                      .map(
+                        (profile) => `
+                          <button class="flex items-center justify-between rounded-[10px] border border-border px-4 py-3 text-left hover:bg-secondary ${fields.fitProfileExisting === profile ? "border-primary bg-primary/10 ring-1 ring-primary/25" : "bg-card"}" data-one-page-order-fit-profile="${escapeAttr(profile)}" type="button">
+                            <span class="font-medium">${escapeHtml(profile)}</span>
+                            <span class="text-sm text-muted-foreground">${onePageOrderIsTrouserFlow() ? "T40 · TryOn 32" : profile.includes("Knit") ? "K40 · TryOn 52" : "Slim · TryOn 36"}</span>
+                          </button>
+                        `,
+                      )
+                      .join("")
+                  : `<div class="rounded-[10px] border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">No matching FitProfiles.</div>`}
+              </div>
+            </div>
+          `
+          : `
+            <div class="grid gap-4 md:grid-cols-3">
+              ${onePageOrderField("fitProfileName", "FitProfile name", "input")}
+              ${onePageOrderField("tryOnFit", "TryOn Fit")}
+              ${onePageOrderField("tryOnSize", "TryOn Size")}
+            </div>
+          `
+      }
+    </div>
+  `;
+}
+
+function onePageOrderFitToolsSection() {
+  if (!onePageOrderFitProfileComplete()) {
+    return `
+      <div class="rounded-[10px] border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
+        Add or select a FitProfile before loading FitTools.
+      </div>
+    `;
+  }
+  if (onePageOrderIsTrouserFlow()) {
+    const fitToolField = (direction, key, label) => `
+      <div class="grid items-center gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(180px,280px)_32px]">
+        <span class="text-sm font-semibold text-muted-foreground">${escapeHtml(label)}</span>
+        ${onePageOrderSelectButton(`trouserFit:${direction}:${key}`, state.onePageOrderTrouserFitTools[`${direction}:${key}`] || "0.00")}
+        <button class="fit-help-btn inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-sky-200 bg-sky-50/70 text-sky-600 opacity-60 transition hover:opacity-100" data-one-page-order-design-help="${escapeAttr(label)}" type="button" title="Measurement help" aria-label="${escapeAttr(label)} help">
+          <svg class="icon h-3.5 w-3.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+        </button>
+      </div>
+    `;
+    return `
+      <div class="grid gap-8 xl:grid-cols-2">
+        <div class="space-y-4">
+          <div class="text-sm font-semibold text-muted-foreground">${escapeHtml(state.onePageOrderFields.trouserItem || "Trousers")} · plus values</div>
+          ${onePageOrderTrouserFitToolRows.map(([key, plusLabel]) => fitToolField("plus", key, plusLabel)).join("")}
+        </div>
+        <div class="space-y-4">
+          <div class="text-sm font-semibold text-muted-foreground">${escapeHtml(state.onePageOrderFields.trouserItem || "Trousers")} · minus values</div>
+          ${onePageOrderTrouserFitToolRows.map(([key, , minusLabel]) => fitToolField("minus", key, minusLabel)).join("")}
+        </div>
+      </div>
+    `;
+  }
+  return `
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="md:col-span-2 text-sm font-semibold">Knitwear</div>
+      ${onePageOrderField("hipWaist", "1/2 hip & waist (50%)")}
+      ${onePageOrderField("length", "Length")}
+      ${onePageOrderField("sleeveLength", "Sleeve length")}
+      ${onePageOrderField("shortSleeveLength", "Short sleeve length")}
+    </div>
+  `;
+}
+
+function onePageOrderDesignSection() {
+  ensureOnePageOrderLines();
+  ensureOnePageOrderDesigns();
+  const designRows = onePageOrderIsTrouserFlow()
+    ? [
+        ["trouserDetailing", "Detailing {Style}"],
+        ["trouserWaistband", "Waistband"],
+        ["trouserExtendedWaistband", "Extended waistband"],
+        ["trouserBuckleLoop", "Buckle loop"],
+        ["trouserClosure", "Closure"],
+        ["trouserClosingButton", "Closing button"],
+        ["trouserPocketLining", "Pocket lining"],
+        ["trouserFrontStyle", "Front style"],
+        ["trouserPleatDirection", "Pleat direction"],
+        ["trouserPleatDepth", "Pleat depth"],
+        ["trouserPressedCrease", "Pressed crease"],
+        ["trouserPintuck", "Pintuck"],
+        ["trouserSidePockets", "Side pockets"],
+        ["trouserCargoPockets", "Cargo pockets"],
+        ["trouserBackPockets", "Back pockets"],
+        ["trouserHemFinish", "Hem finish"],
+        ["trouserBackPatch", "Back patch"],
+      ]
+    : [
+        ["neckline", "Neckline / Closure"],
+        ["armholeStyle", "Armhole style"],
+        ["detailing", "Detailing collar, hem & cuff"],
+        ["sleeveStyle", "Sleeve style"],
+        ["chestPocket", "Chest pocket"],
+        ["sidePockets", "Side pockets"],
+        ["contrastOption", "Contrast option"],
+        ["contrastColor", "Contrast color"],
+      ];
+  const monogramRows = [
+    ["monogramPosition", "Monogram position(s)", "select"],
+    ["monogramColour", "Monogram colour", "select"],
+    ["monogramFont", "Monogram font", "select"],
+    ["monogramText", "Monogram text", "input"],
+  ];
+  const brandingRows = [["brandingHangtag", "Hangtag", "select"]];
+  const quantity = Math.max(1, Number(state.onePageOrderFields.quantity) || 1);
+  const showCopyControls = quantity > 1;
+  const anyMonogramEnabled = state.onePageOrderDesigns.some((design) => design.monogram || design.monogramEnabled);
+  const anyBrandingEnabled = state.onePageOrderDesigns.some((design) => design.branding || design.brandingEnabled);
+  const designCopyKeys = [
+    ...designRows.map(([key]) => key),
+    "monogramEnabled",
+    ...(anyMonogramEnabled ? monogramRows.map(([key]) => key) : []),
+    "brandingEnabled",
+    ...(anyBrandingEnabled ? brandingRows.map(([key]) => key) : []),
+  ];
+  const allCopyRowsActive = showCopyControls && designCopyKeys.every((key) => state.onePageOrderDesignCopyRows.has(key));
+  const someCopyRowsActive = showCopyControls && designCopyKeys.some((key) => state.onePageOrderDesignCopyRows.has(key));
+  const gridColumns = `240px repeat(${quantity}, minmax(240px, 1fr))${showCopyControls ? " 112px" : ""}`;
+  const orderSubtitle = (index) => {
+    const line = state.onePageOrderLines[index] || {};
+    const model = line.model || state.onePageOrderFields.model || onePageOrderDisplayItem();
+    const fabric = line.fabric || state.onePageOrderFields.fabric || "-";
+    return `${model} · ${fabric}`;
+  };
+  const designLabel = (key, label) => `
+    <div class="sticky left-0 z-20 flex items-center gap-2 border-b border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground">
+      <span>${escapeHtml(label)}</span>
+      <button class="fit-help-btn inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-sky-200 bg-sky-50/70 text-sky-600 opacity-60 transition hover:opacity-100" data-one-page-order-design-help="${escapeAttr(label)}" type="button" title="Measurement help" aria-label="${escapeAttr(label)} help">
+        <svg class="icon h-3.5 w-3.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+      </button>
+    </div>
+  `;
+  const groupLabel = (label) => `
+    <div class="sticky left-0 z-20 border-b border-border bg-secondary/35 px-4 py-4">
+      <div class="text-base font-semibold text-foreground">${escapeHtml(label)}</div>
+    </div>
+  `;
+  const copyCell = (key, tinted = false) =>
+    showCopyControls
+      ? `
+        <div class="sticky right-0 z-20 flex items-center justify-center border-b border-l ${tinted ? "border-border bg-secondary/35" : "border-border bg-card"} p-2">
+          <input class="check" data-one-page-order-design-copy-row="${escapeAttr(key)}" type="checkbox" ${state.onePageOrderDesignCopyRows.has(key) ? "checked" : ""} title="Copy this row to all orders" aria-label="Copy this row to all orders" />
+        </div>
+      `
+      : "";
+  const groupToggleButton = (index, key, enabled, label) => `
+    <button class="flex h-10 w-full items-center justify-between gap-3 rounded-[8px] border border-border bg-card px-3 text-left text-sm font-medium transition hover:border-primary/30 hover:bg-secondary" data-one-page-order-design-extra="${escapeAttr(key)}" data-one-page-order-design-index="${index}" type="button" aria-pressed="${enabled ? "true" : "false"}">
+      <span class="flex min-w-0 items-center gap-2">
+        ${icon(enabled ? "check-square" : "square", `h-4 w-4 shrink-0 ${enabled ? "text-emerald-600" : "text-muted-foreground"}`)}
+        <span class="truncate">${enabled ? `${escapeHtml(label)} enabled` : `Add ${escapeHtml(label.toLowerCase())}`}</span>
+      </span>
+      <span class="text-xs font-semibold ${enabled ? "text-emerald-600" : "text-muted-foreground"}">${enabled ? "On" : "Off"}</span>
+    </button>
+  `;
+  const monogramControl = (design, index, key, type) => {
+    const enabled = design.monogram || design.monogramEnabled;
+    if (!enabled) return `<div class="text-sm text-muted-foreground">-</div>`;
+    if (type === "input") {
+      return `<input class="field" data-one-page-order-design-index="${index}" data-one-page-order-design-input="${escapeAttr(key)}" value="${escapeHtml(onePageOrderDesignValue(index, key))}" />`;
+    }
+    return onePageOrderSelectButton(`design:${index}:${key}`, onePageOrderDesignValue(index, key));
+  };
+  const brandingControl = (design, index, key) => {
+    const enabled = design.branding || design.brandingEnabled;
+    if (!enabled) return `<div class="text-sm text-muted-foreground">-</div>`;
+    return onePageOrderSelectButton(`design:${index}:${key}`, onePageOrderDesignValue(index, key));
+  };
+  return `
+    <div class="order-scroll-shell">
+    <div class="overflow-x-auto rounded-[10px] border border-border">
+      <div class="grid min-w-[900px]" style="grid-template-columns: ${gridColumns};">
+        <div class="sticky left-0 z-30 border-b border-border bg-secondary/35 px-4 py-3">
+          <div class="font-semibold">Design options</div>
+          ${onePageOrderIsTrouserFlow() ? `<div class="mt-1 text-xs text-muted-foreground">${escapeHtml(state.onePageOrderFields.trouserItem || "Trousers")}</div>` : ""}
+        </div>
+        ${state.onePageOrderDesigns
+          .map(
+            (_, index) => `
+              <div class="border-b border-l border-border bg-secondary/35 px-4 py-3">
+                <div class="font-semibold">Order ${index + 1}</div>
+                <div class="mt-1 text-xs text-muted-foreground">${escapeHtml(orderSubtitle(index))}</div>
+              </div>
+            `,
+          )
+          .join("")}
+        ${showCopyControls ? `
+          <div class="sticky right-0 z-30 flex flex-col items-center justify-center gap-2 border-b border-l border-border bg-secondary/35 px-2 py-3">
+            <div class="text-center text-xs font-semibold leading-tight text-muted-foreground">Copy to all orders</div>
+            <button class="flex h-5 w-5 items-center justify-center text-primary" data-one-page-order-design-copy-all="${allCopyRowsActive ? "off" : "on"}" data-copy-partial="${someCopyRowsActive && !allCopyRowsActive ? "true" : "false"}" type="button" title="Toggle copy for all rows" aria-label="Toggle copy for all rows">
+              ${icon(allCopyRowsActive ? "check-square" : someCopyRowsActive ? "minus-square" : "square", "h-5 w-5")}
+            </button>
+          </div>
+        ` : ""}
+
+        ${
+          showCopyControls
+            ? `
+              <div class="sticky left-0 z-20 border-b border-primary/10 bg-primary/[0.055] px-4 py-3 text-sm font-semibold text-primary">Copy this design</div>
+              ${state.onePageOrderDesigns
+                .map(
+                  (_, index) => `
+                    <div class="border-b border-l border-primary/10 bg-primary/[0.055] p-3">
+                      <button class="text-xs font-medium text-primary hover:underline" data-one-page-order-design-copy-order="${index}" type="button">Copy Order ${index + 1} to all</button>
+                    </div>
+                  `,
+                )
+                .join("")}
+              <div class="sticky right-0 z-20 border-b border-l border-primary/10 bg-primary/[0.055] p-2 text-center text-xs font-medium text-muted-foreground">All</div>
+            `
+            : ""
+        }
+
+        ${designRows
+          .map(
+            ([key, label]) => `
+              ${designLabel(key, label)}
+              ${state.onePageOrderDesigns
+                .map(
+                  (_, index) => `
+                    <div class="border-b border-l border-border p-3">
+                      ${onePageOrderSelectButton(`design:${index}:${key}`, onePageOrderDesignValue(index, key))}
+                    </div>
+                  `,
+                )
+                .join("")}
+              ${copyCell(key)}
+            `,
+          )
+          .join("")}
+
+        ${groupLabel("Monogram")}
+        ${state.onePageOrderDesigns
+          .map(
+            (design, index) => `
+              <div class="border-b border-l border-border bg-secondary/35 p-3">
+                ${groupToggleButton(index, "monogram", design.monogram || design.monogramEnabled, "Monogram")}
+              </div>
+            `,
+          )
+          .join("")}
+        ${copyCell("monogramEnabled", true)}
+
+        ${
+          anyMonogramEnabled
+            ? monogramRows
+                .map(
+                  ([key, label, type]) => `
+                    ${designLabel(key, label)}
+                    ${state.onePageOrderDesigns
+                      .map(
+                        (design, index) => `
+                          <div class="border-b border-l border-border p-3">
+                            ${monogramControl(design, index, key, type)}
+                          </div>
+                        `,
+                      )
+                      .join("")}
+                    ${copyCell(key)}
+                  `,
+                )
+                .join("")
+            : ""
+        }
+
+        ${groupLabel("Branding")}
+        ${state.onePageOrderDesigns
+          .map(
+            (design, index) => `
+              <div class="border-b border-l border-border bg-secondary/35 p-3">
+                ${groupToggleButton(index, "branding", design.branding || design.brandingEnabled, "Branding")}
+              </div>
+            `,
+          )
+          .join("")}
+        ${copyCell("brandingEnabled", true)}
+
+        ${
+          anyBrandingEnabled
+            ? brandingRows
+                .map(
+                  ([key, label]) => `
+                    ${designLabel(key, label)}
+                    ${state.onePageOrderDesigns
+                      .map(
+                        (design, index) => `
+                          <div class="border-b border-l border-border p-3">
+                            ${brandingControl(design, index, key)}
+                          </div>
+                        `,
+                      )
+                      .join("")}
+                    ${copyCell(key)}
+                  `,
+                )
+                .join("")
+            : ""
+        }
+      </div>
+    </div>
+    </div>
+  `;
+}
+
+function onePageOrderPlaceholderSection(label) {
+  return `<div class="rounded-[10px] border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">${label} can stay collapsed for this first knitwear pass.</div>`;
+}
+
+function onePageOrderPerOrderEnabled() {
+  const quantity = Math.max(1, Number(state.onePageOrderFields.quantity) || 1);
+  return quantity > 1;
+}
+
+function onePageOrderVisibleOrderIndexes() {
+  ensureOnePageOrderPaymentDetails();
+  if (!onePageOrderPerOrderEnabled()) return [0];
+  return state.onePageOrderLines.map((_, index) => index);
+}
+
+function onePageOrderPriceFor(index) {
+  const line = state.onePageOrderLines[index] || state.onePageOrderLines[0] || {};
+  return line.fabric ? 144 : 0;
+}
+
+function onePageOrderNumberValue(value) {
+  const parsed = Number.parseFloat(String(value || "0").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function onePageOrderPaymentTotal(index) {
+  const payment = state.onePageOrderPayments[index] || onePageOrderPaymentDefaults();
+  return onePageOrderPriceFor(index) - onePageOrderNumberValue(payment.discount) + onePageOrderNumberValue(payment.serviceCharge);
+}
+
+function onePageOrderPaymentField(index, key, label, type = "input", readOnlyValue = null) {
+  const value = readOnlyValue ?? onePageOrderPaymentValue(index, key);
+  const control =
+    type === "select"
+      ? onePageOrderSelectButton(`payment:${index}:${key}`, value)
+      : `<input class="field ${readOnlyValue !== null ? "bg-secondary/60" : ""}" data-one-page-order-payment-index="${index}" data-one-page-order-payment-field="${escapeAttr(key)}" value="${escapeHtml(value)}" ${readOnlyValue !== null ? "readonly" : ""} />`;
+  return `
+    <label class="grid gap-1.5">
+      <span class="text-sm font-medium text-muted-foreground">${escapeHtml(label)}</span>
+      ${control}
+    </label>
+  `;
+}
+
+function onePageOrderPaymentInput(index, key, readOnlyValue = null) {
+  const value = readOnlyValue ?? onePageOrderPaymentValue(index, key);
+  return `<input class="field ${readOnlyValue !== null ? "bg-secondary/60" : ""}" data-one-page-order-payment-index="${index}" data-one-page-order-payment-field="${escapeAttr(key)}" value="${escapeHtml(value)}" ${readOnlyValue !== null ? "readonly" : ""} />`;
+}
+
+function onePageOrderDetailField(index, key, label, type = "input") {
+  const value = onePageOrderDetailValue(index, key);
+  const control =
+    type === "select"
+      ? onePageOrderSelectButton(`detail:${index}:${key}`, value)
+      : `<input class="field" data-one-page-order-detail-index="${index}" data-one-page-order-detail-field="${escapeAttr(key)}" value="${escapeHtml(value)}" />`;
+  return `
+    <label class="grid gap-1.5">
+      <span class="text-sm font-medium text-muted-foreground">${escapeHtml(label)}</span>
+      ${control}
+    </label>
+  `;
+}
+
+function onePageOrderPaymentSection() {
+  ensureOnePageOrderLines();
+  ensureOnePageOrderPaymentDetails();
+  const indexes = onePageOrderVisibleOrderIndexes();
+  const columns = indexes.map((index) => ({
+    index,
+    title: indexes.length === 1 ? "Order 1" : `Order ${index + 1}`,
+    subtitle: state.onePageOrderLines[index]?.fabric || "Fabric required",
+  }));
+  return onePageOrderTable(
+    columns,
+    [
+      { label: "R.Price (€)", render: (index) => onePageOrderPaymentInput(index, "rPrice", String(onePageOrderPriceFor(index))) },
+      { label: "Discount (€)", render: (index) => onePageOrderPaymentInput(index, "discount") },
+      { label: "Service charge (€)", render: (index) => onePageOrderPaymentInput(index, "serviceCharge") },
+      { label: "Total (€)", render: (index) => onePageOrderPaymentInput(index, "total", onePageOrderPaymentTotal(index).toFixed(2)) },
+      { label: "Down payment (€)", render: (index) => onePageOrderPaymentInput(index, "downPayment") },
+      { label: "Outstanding (€)", render: (index) => onePageOrderPaymentInput(index, "outstanding", (onePageOrderPaymentTotal(index) - onePageOrderNumberValue(onePageOrderPaymentValue(index, "downPayment"))).toFixed(2)) },
+      { label: "Payment method", render: (index) => onePageOrderSelectButton(`payment:${index}:paymentMethod`, onePageOrderPaymentValue(index, "paymentMethod")) },
+    ],
+    { label: "Payment" },
+  );
+}
+
+function onePageOrderDetailsSection() {
+  ensureOnePageOrderPaymentDetails();
+  const indexes = onePageOrderVisibleOrderIndexes();
+  const columns = indexes.map((index) => ({
+    index,
+    title: indexes.length === 1 ? "Order 1" : `Order ${index + 1}`,
+    subtitle: state.onePageOrderLines[index]?.fabric || "Fabric required",
+  }));
+  return onePageOrderTable(
+    columns,
+    [
+      { label: "Shop Order Number", render: (index) => `<input class="field" data-one-page-order-detail-index="${index}" data-one-page-order-detail-field="shopOrderNumber" value="${escapeHtml(onePageOrderDetailValue(index, "shopOrderNumber"))}" />` },
+      { label: "Occasion", render: (index) => onePageOrderSelectButton(`detail:${index}:occasion`, onePageOrderDetailValue(index, "occasion")) },
+    ],
+    { label: "Order details" },
+  );
+}
+
+function renderOnePageOrderActions(extraClass = "") {
+  const reviewed = Boolean(state.onePageOrderFields.reviewed);
+  const disabled = reviewed ? "" : 'disabled title="Review the summary before using order actions."';
+  const disabledClass = reviewed ? "" : "opacity-60";
+  return `
+    <div class="flex flex-wrap items-center gap-3 ${extraClass}">
+      <button class="btn btn-soft ${disabledClass}" data-one-page-order-action="hold" type="button" ${disabled}>Put order on hold</button>
+      <button class="btn btn-soft ${disabledClass}" data-one-page-order-action="discount" type="button" ${disabled}>Discount</button>
+      <button class="btn btn-primary ${disabledClass}" data-one-page-order-action="process" type="button" ${reviewed ? "" : 'disabled title="Your order is incomplete."'}>Process order</button>
+    </div>
+  `;
+}
+
+function onePageOrderReviewActionsSection() {
+  const reviewed = Boolean(state.onePageOrderFields.reviewed);
+  return `
+    <div class="mt-4 flex flex-col gap-4 border-t border-border px-1 pt-4 lg:flex-row lg:items-center lg:justify-between">
+      <label class="flex items-start gap-3 text-sm font-medium">
+        <input class="check mt-0.5" data-one-page-order-field="reviewed" type="checkbox" ${reviewed ? "checked" : ""} />
+        <span>Yes I have reviewed the summary and confirm the order</span>
+      </label>
+      ${renderOnePageOrderActions("justify-end")}
+    </div>
+  `;
+}
+
+function onePageOrderDeliveryDate(index = 0) {
+  const baseDay = 24 + index * 2;
+  return `${String(baseDay).padStart(2, "0")}-Jul-2026`;
+}
+
+function onePageOrderCardNumber(index = 0) {
+  const detailNumber = onePageOrderDetailValue(index, "shopOrderNumber");
+  return detailNumber || `CM-${String(index + 1).padStart(3, "0")}`;
+}
+
+function onePageOrderDisplayNumber(index = 0) {
+  return `Order ${index + 1}`;
+}
+
+function onePageOrderFitProfileChip(label) {
+  return `<span class="pill max-w-full justify-start bg-sky-100 text-sky-700">${escapeHtml(label || "-")}</span>`;
+}
+
+const onePageOrderCardTabs = [
+  { id: "general", label: "General" },
+  { id: "production", label: "P.Price" },
+  { id: "retail", label: "R.Price" },
+  { id: "measurements", label: "Measurements" },
+  { id: "delivery", label: "Delivery" },
+  { id: "remarks", label: "Remarks" },
+];
+
+function onePageOrderCardValue(value) {
+  return value === "" || value === null || value === undefined ? "-" : String(value);
+}
+
+function onePageOrderCardPrice(value) {
+  return `€ ${onePageOrderNumberValue(value).toFixed(2)}`;
+}
+
+function onePageOrderRetailPriceRows() {
+  return [
+    { label: "fabric", render: (index) => onePageOrderPriceFor(index) ? `€ ${onePageOrderPriceFor(index).toFixed(2)}` : "€ 0.00" },
+    { label: "lining", render: () => "€ 0.00" },
+    { label: "make", render: (index) => (state.onePageOrderLines[index]?.make ? "€ 100.00" : "€ 0.00") },
+    { label: "design options", render: (index) => {
+      const design = state.onePageOrderDesigns[index] || {};
+      return design.monogram || design.branding ? "€ 25.00" : "€ 0.00";
+    } },
+    { label: "discount", render: (index) => onePageOrderCardPrice((state.onePageOrderPayments[index] || {}).discount) },
+    { label: "service charge", render: (index) => onePageOrderCardPrice((state.onePageOrderPayments[index] || {}).serviceCharge) },
+  ];
+}
+
+function onePageOrderProductionPriceRows() {
+  return [
+    { label: "fabric", render: (index) => (state.onePageOrderLines[index]?.fabric ? "€ 72.00" : "€ 0.00") },
+    { label: "lining", render: () => "€ 0.00" },
+    { label: "make", render: (index) => (state.onePageOrderLines[index]?.make ? "€ 50.00" : "€ 0.00") },
+    { label: "design options", render: (index) => {
+      const design = state.onePageOrderDesigns[index] || {};
+      return design.monogram || design.branding ? "€ 12.50" : "€ 0.00";
+    } },
+  ];
+}
+
+function onePageOrderProductionTotal(index) {
+  const line = state.onePageOrderLines[index] || {};
+  const design = state.onePageOrderDesigns[index] || {};
+  return (line.fabric ? 72 : 0) + (line.make ? 50 : 0) + (design.monogram || design.branding ? 12.5 : 0);
+}
+
+function onePageOrderCardSubtotal(tabId, columns) {
+  if (tabId === "production") return columns.reduce((total, column) => total + onePageOrderProductionTotal(column.index), 0);
+  if (tabId === "retail") return columns.reduce((total, column) => total + onePageOrderPaymentTotal(column.index), 0);
+  return null;
+}
+
+function onePageOrderDeliveryRows() {
+  return [
+    { label: "Expected Delivery Date", render: (index) => onePageOrderDeliveryDate(index) },
+    { label: "Latest Delivery Date", render: (index) => onePageOrderDeliveryDate(index + 3) },
+    { label: "Total Extra Days", render: (index) => (index === 0 ? "7" : "0") },
+    { label: "Make Extra Days", render: (index) => (index === 0 ? "7" : "0") },
+    { label: "Fabric & Lining Extra Days", render: () => "0" },
+    { label: "Design Options Extra Days", render: () => "0" },
+    { label: "Delivery Method", render: () => "atelier delivery" },
+    { label: "Delivery Address", render: () => "shop address" },
+    { label: "Order Number", render: (index) => onePageOrderCardNumber(index) },
+  ];
+}
+
+function onePageOrderGeneralRows() {
+  const fields = state.onePageOrderFields;
+  const isTrouser = onePageOrderIsTrouserFlow();
+  return [
+    { label: "item", render: () => onePageOrderDisplayItem() },
+    { label: "model", render: (index) => onePageOrderCardValue(state.onePageOrderLines[index]?.model) },
+    { label: "make", render: (index) => onePageOrderCardValue(state.onePageOrderLines[index]?.make) },
+    { label: isTrouser ? "fabric/wash" : "fabric", render: (index) => onePageOrderCardValue(state.onePageOrderLines[index]?.fabric) },
+    { label: "lining", render: () => isTrouser ? "-" : "2050 mid grey" },
+    { label: "FitProfile", render: () => onePageOrderCardValue(fields.fitProfileName || fields.fitProfileExisting) },
+    { label: "TryOn Fit", render: () => onePageOrderCardValue(fields.tryOnFit) },
+    { label: "TryOn Size", render: () => onePageOrderCardValue(fields.tryOnSize) },
+  ];
+}
+
+function onePageOrderCardRowsForTab(tabId) {
+  if (tabId === "production") return onePageOrderProductionPriceRows();
+  if (tabId === "retail") return onePageOrderRetailPriceRows();
+  if (tabId === "delivery") return onePageOrderDeliveryRows();
+  return onePageOrderGeneralRows();
+}
+
+function renderOnePageOrderSharedMeasurements() {
+  const measurements = onePageOrderIsTrouserFlow() ? onePageOrderTrouserMeasurements : onePageOrderMeasurements;
+  return `
+    <section class="rounded-[10px] border border-border">
+      <div class="grid grid-cols-[minmax(160px,1fr)_96px_96px] gap-3 border-b border-border bg-secondary/35 px-4 py-3 text-sm font-semibold text-muted-foreground">
+        <span>measurement</span>
+        <span class="text-right">TryOn</span>
+        <span class="text-right">Final</span>
+      </div>
+      ${measurements
+        .map(
+          ([label, tryOn, finished]) => `
+            <div class="grid grid-cols-[minmax(160px,1fr)_96px_96px] gap-3 border-b border-border px-4 py-3 text-sm last:border-b-0">
+              <span class="font-medium text-muted-foreground">${escapeHtml(label)}</span>
+              <span class="text-right text-muted-foreground">${escapeHtml(tryOn)}</span>
+              <span class="text-right font-semibold">${escapeHtml(finished)}</span>
+            </div>
+          `,
+        )
+        .join("")}
+    </section>
+  `;
+}
+
+function renderOnePageOrderRemarks(activeIndex) {
+  const value = state.onePageOrderRemarks[String(activeIndex)] || "";
+  return `
+    <section class="rounded-[10px] border border-border p-4">
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h3 class="font-semibold">${escapeHtml(onePageOrderDisplayNumber(activeIndex))} remarks</h3>
+          <p class="mt-1 text-sm text-muted-foreground">Save notes for later review.</p>
+        </div>
+      </div>
+      <textarea id="onePageOrderRemarksInput" class="min-h-[220px] w-full resize-y rounded-[10px] border border-input bg-card px-4 py-3 text-sm leading-6 text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20" placeholder="Add production notes, customer context, or follow-up here.">${escapeHtml(value)}</textarea>
+      <div class="mt-4 flex justify-end">
+        <button id="saveOnePageOrderRemarksBtn" class="btn btn-primary" type="button">Save remarks</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderOnePageOrderCardTable(rows, columns, activeIndex) {
+  const gridColumns = `180px repeat(${columns.length}, minmax(190px, 1fr))`;
+  return `
+    <div class="overflow-x-auto rounded-[10px] border border-border">
+      <div class="grid" style="grid-template-columns: ${gridColumns}; min-width: ${180 + columns.length * 190}px;">
+        <div class="sticky left-0 z-30 border-b border-border bg-secondary/50 px-4 py-3 text-sm font-semibold text-muted-foreground">information</div>
+        ${columns
+          .map((column) => {
+            const active = column.index === activeIndex;
+            return `
+              <button class="border-b border-l border-border px-4 py-3 text-left transition ${active ? "bg-primary/10 ring-1 ring-inset ring-primary/25" : "bg-secondary/35 hover:bg-secondary/65"}" data-one-page-order-card-column="${column.index}" type="button">
+                <div class="font-semibold">${escapeHtml(column.title)}</div>
+                <div class="mt-1 truncate text-xs text-muted-foreground">${escapeHtml(column.subtitle)}</div>
+              </button>
+            `;
+          })
+          .join("")}
+        ${rows
+          .map(
+            (row) => `
+              <div class="sticky left-0 z-20 border-b border-border bg-card px-4 py-3 text-sm font-semibold text-muted-foreground">${escapeHtml(row.label)}</div>
+              ${columns
+                .map((column) => {
+                  const active = column.index === activeIndex;
+                  return `
+                    <button class="min-h-[48px] border-b border-l border-border px-4 py-3 text-left text-sm transition ${active ? "bg-primary/[0.055]" : "bg-card hover:bg-secondary/35"} ${row.emphasis ? "font-semibold text-primary" : "text-foreground"}" data-one-page-order-card-column="${column.index}" type="button">
+                      ${row.render(column.index)}
+                    </button>
+                  `;
+                })
+                .join("")}
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderOnePageOrderCardModal() {
+  ensureOnePageOrderLines();
+  ensureOnePageOrderPaymentDetails();
+  const requestedIndex = Number.isInteger(state.activeOnePageOrderCardIndex) ? state.activeOnePageOrderCardIndex : 0;
+  const activeIndex = Math.max(0, Math.min(requestedIndex, state.onePageOrderLines.length - 1));
+  state.activeOnePageOrderCardIndex = activeIndex;
+  const activeTab = onePageOrderCardTabs.some((tab) => tab.id === state.activeOnePageOrderCardTab) ? state.activeOnePageOrderCardTab : "general";
+  const columns = state.onePageOrderLines.map((line, index) => ({
+    index,
+    title: onePageOrderDisplayNumber(index),
+    subtitle: line.fabric || "fabric required",
+  }));
+  const rows = onePageOrderCardRowsForTab(activeTab);
+  const subtotal = onePageOrderCardSubtotal(activeTab, columns);
+  return `
+    <div class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+      <div class="min-w-0">
+        <h2 class="text-base font-semibold">Order details</h2>
+        <p class="mt-1 truncate text-sm text-muted-foreground">${escapeHtml(columns.length)} ${columns.length === 1 ? "order" : "orders"} · ${escapeHtml(onePageOrderDisplayItem())}</p>
+      </div>
+      <button id="closeOnePageOrderCardModalBtn" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-secondary" type="button" title="Close" aria-label="Close">
+        ${icon("x", "h-4 w-4")}
+      </button>
+    </div>
+    <div class="space-y-4 overflow-y-auto px-5 py-5" style="max-height:min(74vh,760px);">
+      <div class="inline-flex max-w-full flex-wrap rounded-lg bg-secondary p-1">
+        ${onePageOrderCardTabs
+          .map(
+            (tab) => `
+              <button class="customer-tab ${activeTab === tab.id ? "active" : ""}" data-one-page-order-card-tab="${tab.id}" type="button">${escapeHtml(tab.label)}</button>
+            `,
+          )
+          .join("")}
+      </div>
+      ${activeTab === "measurements" ? renderOnePageOrderSharedMeasurements() : activeTab === "remarks" ? renderOnePageOrderRemarks(activeIndex) : renderOnePageOrderCardTable(rows, columns, activeIndex)}
+      ${subtotal === null ? "" : `
+        <div class="flex justify-end border-t border-border pt-4">
+          <div class="flex min-w-[260px] items-center justify-between gap-6 rounded-[8px] bg-secondary/45 px-4 py-3">
+            <span class="text-sm font-semibold text-muted-foreground">Sub total</span>
+            <span class="text-base font-semibold">€ ${subtotal.toFixed(2)}</span>
+          </div>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function setOnePageOrderCardModal(open, index = null) {
+  state.activeOnePageOrderCardIndex = open ? index : null;
+  if (open && !onePageOrderCardTabs.some((tab) => tab.id === state.activeOnePageOrderCardTab)) state.activeOnePageOrderCardTab = "general";
+  const modal = el("onePageOrderCardModal");
+  if (open) modal.innerHTML = renderOnePageOrderCardModal();
+  modal?.classList.toggle("open", open);
+  setOverlay(open || anyModalOpen());
+}
+
+function renderOnePageOrderRunningInfo() {
+  ensureOnePageOrderLines();
+  syncOnePagePrimaryFieldsFromFirstLine();
+  const fields = state.onePageOrderFields;
+  const isTrouser = onePageOrderIsTrouserFlow();
+  const collapsed = Boolean(state.onePageOrderRunningInfoCollapsed);
+  const orderCards = state.onePageOrderLines
+    .map(
+      (line, index) => `
+        <button class="group flex w-full items-center gap-3 rounded-[10px] bg-secondary/55 px-3 py-3 text-left transition hover:-translate-y-0.5 hover:bg-secondary hover:shadow-panel" data-one-page-order-card="${index}" type="button">
+          <span class="min-w-0 flex-1">
+            <span class="block font-semibold">${escapeHtml(onePageOrderDisplayNumber(index))}</span>
+            <span class="mt-1 block truncate text-sm text-muted-foreground">${escapeHtml(line.fabric || "Fabric required")}</span>
+          </span>
+          <span class="pill shrink-0 bg-emerald-50 text-emerald-700">${onePageOrderDeliveryDate(index)}</span>
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition group-hover:bg-card group-hover:text-foreground">
+            ${icon("chevron-right", "h-4 w-4")}
+          </span>
+        </button>
+      `,
+    )
+    .join("");
+  const measurements = (isTrouser ? onePageOrderTrouserMeasurements : onePageOrderMeasurements)
+    .map(
+      ([label, tryOn, finished]) => `
+        <div class="grid grid-cols-[1fr_56px_56px] gap-2 text-sm">
+          <span>${escapeHtml(label)}</span>
+          <span class="text-right text-muted-foreground">${escapeHtml(tryOn)}</span>
+          <span class="text-right font-medium">${escapeHtml(finished)}</span>
+        </div>
+      `,
+    )
+    .join("");
+  const fitProfileLabel = fields.fitProfileName || fields.fitProfileExisting || "-";
+  if (collapsed) {
+    return `
+      <aside class="sticky top-6 flex w-14 self-start rounded-[10px] border border-border bg-card shadow-panel">
+        <button class="group relative flex h-14 w-14 items-center justify-center rounded-[10px] hover:bg-secondary" data-one-page-running-info-toggle type="button" title="Running info" aria-label="Running info">
+          ${icon("chevrons-left", "h-4 w-4 text-muted-foreground")}
+          <span class="pointer-events-none absolute right-[calc(100%+8px)] top-1/2 z-50 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-foreground shadow-panel group-hover:block">Running info</span>
+        </button>
+      </aside>
+    `;
+  }
+  return `
+    <aside class="sticky top-6 self-start rounded-[10px] border border-border bg-card shadow-panel">
+      <div class="flex items-center justify-between border-b border-border bg-secondary/55 px-4 py-3">
+        <h2 class="font-semibold">Running info</h2>
+        <button class="flex h-8 w-8 items-center justify-center rounded-md hover:bg-card" data-one-page-running-info-toggle type="button" title="Collapse running info" aria-label="Collapse running info">
+          ${icon("chevrons-right", "h-4 w-4 text-muted-foreground")}
+        </button>
+      </div>
+      <div class="space-y-5 p-4">
+        <div>
+          <h3 class="mb-3 text-sm font-semibold">Fitprofile</h3>
+          <div class="flex flex-wrap gap-2">
+            ${onePageOrderFitProfileChip(fitProfileLabel)}
+            ${onePageOrderFitProfileChip(`TryOn Fit ${fields.tryOnFit || "-"}`)}
+            ${onePageOrderFitProfileChip(`TryOn Size ${fields.tryOnSize || "-"}`)}
+          </div>
+        </div>
+        <div class="border-t border-border pt-4">
+          <div class="mb-3 grid grid-cols-[1fr_56px_56px] gap-2 text-xs font-semibold text-muted-foreground">
+            <span class="text-sm text-foreground">Final measurements</span>
+            <span class="text-right">TryOn</span>
+            <span class="text-right">Final</span>
+          </div>
+          <div class="space-y-1">${measurements}</div>
+        </div>
+        <div class="border-t border-border pt-4">
+          <h3 class="mb-3 text-sm font-semibold">Orders</h3>
+          <div class="space-y-2">${orderCards}</div>
+        </div>
+      </div>
+    </aside>
+  `;
+}
+
+function onePageOrderQuantityDecisionModal() {
+  return "";
+}
+
+function renderOnePageOrderPage() {
+  ensureOnePageOrderLines();
+  syncOnePagePrimaryFieldsFromFirstLine();
+  const item = onePageOrderItemOptions.find((option) => option.id === state.onePageOrderItem) || onePageOrderItemOptions[1];
+  const customer = currentCustomer();
+  const isTrouser = onePageOrderIsTrouserFlow();
+  const showOrderWorkspace = !isTrouser || onePageOrderSectionComplete("primary");
+  const runningInfoColumns = state.onePageOrderRunningInfoCollapsed
+    ? "minmax(0,1fr) 56px"
+    : "minmax(0,1fr) 400px";
+  const sections = onePageOrderSections
+    .filter((section) => section.id !== "primary")
+    .map((section) => {
+      const body =
+        section.id === "fitProfile"
+            ? onePageOrderFitProfileSection()
+            : section.id === "fitTools"
+              ? onePageOrderFitToolsSection()
+              : section.id === "design"
+                ? onePageOrderDesignSection()
+                : section.id === "payment"
+                  ? onePageOrderPaymentSection()
+                : section.id === "orderDetails"
+                  ? onePageOrderDetailsSection()
+                  : onePageOrderPlaceholderSection(section.label);
+      return onePageOrderSection(section, body);
+    })
+    .join("");
+  const lockedWorkspace = `
+    <section class="rounded-[14px] border border-dashed border-primary/20 bg-card p-6 shadow-panel">
+      <h2 class="text-base font-semibold">Complete primary information</h2>
+      <p class="mt-1 text-sm text-muted-foreground">Choose the trouser item, then complete model, make and Fabric/wash to load FitProfile, FitTools and running info.</p>
+    </section>
+  `;
+  const primarySection = `
+    <section class="overflow-visible rounded-[14px] border border-border bg-card shadow-panel">
+      <div class="flex flex-col gap-4 p-6 md:flex-row md:items-start md:justify-between">
+        <div class="flex min-w-0 items-start gap-3">
+          <button id="backToOrdersFromOnePageOrderBtn" class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-secondary" type="button" title="Back" aria-label="Back">
+            ${icon("arrow-left", "h-4 w-4")}
+          </button>
+          <div class="min-w-0">
+            <h1 class="text-xl font-semibold">CustomMade order - ${escapeHtml(fullName(customer))}</h1>
+            <p class="mt-1 text-sm text-muted-foreground">${escapeHtml(item.label)}</p>
+          </div>
+        </div>
+        ${renderOnePageOrderActions()}
+      </div>
+      <div class="border-t border-border p-6">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-semibold">Primary information</h2>
+            <p class="mt-1 text-sm text-muted-foreground">Complete the basic order setup before moving into FitProfile and design details.</p>
+          </div>
+          <span class="text-xs font-medium text-muted-foreground">${onePageOrderSectionComplete("primary") ? "Ready" : "Required"}</span>
+        </div>
+        ${onePageOrderPrimarySection()}
+      </div>
+    </section>
+  `;
+  const orderDetailsSection = `
+    <section class="rounded-[14px] border border-border bg-card p-4 shadow-panel">
+      <div class="mb-4 flex items-center justify-between gap-3 px-1">
+        <div>
+          <h2 class="text-base font-semibold">Order details</h2>
+          <p class="mt-1 text-sm text-muted-foreground">Fitprofile, fit tools, design, payment and final order details.</p>
+        </div>
+        <span class="text-xs font-medium text-muted-foreground">After primary information</span>
+      </div>
+      <div class="space-y-3">${sections}</div>
+      ${onePageOrderReviewActionsSection()}
+    </section>
+  `;
+
+  el("onePageOrderWorkspace").innerHTML = showOrderWorkspace
+    ? `
+      <div class="space-y-6">
+        ${primarySection}
+        <div class="grid gap-6" style="grid-template-columns:${runningInfoColumns}; align-items:start;">
+          ${orderDetailsSection}
+          ${renderOnePageOrderRunningInfo()}
+        </div>
+      </div>
+    `
+    : `
+      <div class="space-y-6">
+        ${primarySection}
+        ${lockedWorkspace}
+      </div>
+    `;
+  el("onePageOrderWorkspace").insertAdjacentHTML("beforeend", `
+    ${onePageOrderQuantityDecisionModal()}
+  `);
+  translatePage(el("onePageOrderPage"));
+  renderOnePageOrderSelectMenu();
+  document.querySelectorAll("[data-copy-partial]").forEach((checkbox) => {
+    checkbox.indeterminate = checkbox.dataset.copyPartial === "true";
+  });
+}
+
+function setCreateOrderFlowItem(itemId) {
+  const item = createOrderFlowAllItems().find((option) => option.id === itemId && !option.disabled);
+  if (!item) return;
+  resetOnePageOrderForItem(item.flowItem || item.id);
+  if (item.fieldKey) updateOnePageOrderField(item.fieldKey, item.fieldValue || "");
+  state.createOrderFlowCategory = item.categoryId || item.flowItem || item.id;
+  renderCreateOrderFlowModal();
+}
+
+function createOrderFlowItemsForCategory(categoryId) {
+  const items = createOrderFlowItems[categoryId] || [];
+  if (items.length) return items;
+  const category = createOrderFlowCategories.find((item) => item.id === categoryId);
+  return [{ id: `${categoryId}-soon`, label: category?.label || "Coming soon", disabled: true }];
+}
+
+function createOrderFlowItemsForActiveCategory() {
+  return createOrderFlowItemsForCategory(state.createOrderFlowCategory);
+}
+
+function createOrderFlowAllItems() {
+  return createOrderFlowCategories.flatMap((category) =>
+    createOrderFlowItemsForCategory(category.id).map((item) => ({
+      ...item,
+      categoryId: category.id,
+      categoryLabel: category.label,
+    })),
+  );
+}
+
+function createOrderFlowItemSelected(item) {
+  if (item.disabled) return false;
+  const flowItem = item.flowItem || item.id;
+  if (state.onePageOrderItem !== flowItem) return false;
+  if (!item.fieldKey) return true;
+  return state.onePageOrderFields[item.fieldKey] === item.fieldValue;
+}
+
+function createOrderFlowVisibleItems() {
+  const query = state.createOrderFlowSearch.trim().toLowerCase();
+  const items = query ? createOrderFlowAllItems() : createOrderFlowItemsForActiveCategory().map((item) => ({
+    ...item,
+    categoryId: state.createOrderFlowCategory,
+    categoryLabel: createOrderFlowCategories.find((category) => category.id === state.createOrderFlowCategory)?.label || "",
+  }));
+  if (!query) return items;
+  return items.filter((item) => `${item.label} ${item.note || ""} ${item.categoryLabel || ""}`.toLowerCase().includes(query));
+}
+
+function renderCreateOrderFlowModal() {
+  const categoriesWrap = el("createOrderFlowCategories");
+  const itemsWrap = el("createOrderFlowItems");
+  if (!categoriesWrap || !itemsWrap) return;
+  categoriesWrap.innerHTML = createOrderFlowCategories
+    .map(
+      (category) => `
+        <button class="shop-settings-section ${category.id === state.createOrderFlowCategory ? "active" : ""}" data-create-order-flow-category="${category.id}" type="button">
+          <span>${escapeHtml(category.label)}</span>
+          ${icon("chevron-right", "h-4 w-4 text-muted-foreground")}
+        </button>
+      `,
+    )
+    .join("");
+
+  const visibleItems = createOrderFlowVisibleItems();
+  const selectedItem = createOrderFlowAllItems().find((item) => createOrderFlowItemSelected(item));
+  itemsWrap.innerHTML = visibleItems.length
+    ? `
+      <div class="grid gap-3">
+        ${visibleItems
+          .map((item) => {
+            const selected = createOrderFlowItemSelected(item);
+            return `
+              <button class="flex min-h-[72px] w-full items-center justify-between gap-4 rounded-[10px] border p-4 text-left transition ${
+                selected
+                  ? "border-primary bg-primary/10 ring-1 ring-primary/25"
+                  : item.disabled
+                    ? "cursor-not-allowed border-border bg-secondary/35 opacity-60"
+                    : "border-border bg-card hover:bg-secondary"
+              }" data-create-order-flow-item="${escapeAttr(item.id)}" type="button" ${item.disabled ? "disabled" : ""}>
+                <span class="min-w-0">
+                  <span class="block font-medium">${escapeHtml(item.label)}</span>
+                  ${item.note ? `<span class="mt-1 block text-sm text-muted-foreground">${escapeHtml(item.note)}</span>` : ""}
+                </span>
+                <span class="shrink-0">
+                  ${item.disabled ? `<span class="pill bg-secondary text-muted-foreground">Coming soon</span>` : icon(selected ? "check" : "chevron-right", `h-4 w-4 ${selected ? "text-primary" : "text-muted-foreground"}`)}
+                </span>
+              </button>
+            `;
+          })
+          .join("")}
+      </div>
+    `
+    : `<div class="rounded-[10px] border border-dashed border-border bg-secondary/30 p-5 text-sm text-muted-foreground">No items match this search.</div>`;
+
+  if (el("createOrderFlowSearchInput")) el("createOrderFlowSearchInput").value = state.createOrderFlowSearch;
+  const continueButton = el("beginCreateOrderFlowBtn");
+  if (continueButton) {
+    continueButton.disabled = !selectedItem;
+    continueButton.classList.toggle("opacity-60", !selectedItem);
+    continueButton.title = selectedItem ? "" : "Select an available item first.";
+  }
+}
+
+function startOnePageOrderFlow() {
+  setCreateOrderFlowModal(false);
+  renderOnePageOrderPage();
+  setPage("onePageOrder");
+}
+
+function openOnePageOrderCheatPage() {
+  closeModals();
+  setCreateOrderFlowItem("knitwear");
+  renderOnePageOrderPage();
+  setPage("onePageOrder");
+  showToast("One-page order opened.");
+}
+
 function setPage(page, options = {}) {
   if (!options.force && state.currentPage === "shopSettings" && page !== "shopSettings" && state.shopSettingsDirty) {
     state.pendingShopSettingsNavigation = () => setPage(page, { force: true });
@@ -3846,6 +5872,7 @@ function setPage(page, options = {}) {
   el("overviewPage").classList.toggle("hidden", page !== "overview");
   el("customerDetailPage").classList.toggle("hidden", page !== "detail");
   el("createFitProfilePage").classList.toggle("hidden", page !== "createFitProfile");
+  el("onePageOrderPage")?.classList.toggle("hidden", page !== "onePageOrder");
   el("ordersPage").classList.toggle("hidden", page !== "orders");
   el("orderDetailPage").classList.toggle("hidden", page !== "orderDetail");
   el("fabricInventoryPage").classList.toggle("hidden", page !== "fabricInventory");
@@ -3856,6 +5883,7 @@ function setPage(page, options = {}) {
   renderPrimaryNavigation();
   if (page === "home") renderDashboard();
   if (page === "createFitProfile") renderCreateFitProfileWorkspace();
+  if (page === "onePageOrder") renderOnePageOrderPage();
   if (page === "orders") renderOrdersPage();
   if (page === "orderDetail") renderOrderDetailTab();
   if (page === "fabricInventory") renderFabricInventory();
@@ -3877,7 +5905,7 @@ function activeSidebarOrder() {
 }
 
 function renderPrimaryNavigation() {
-  const activeNav = state.currentPage === "fabricInventory" ? "stock" : ["orders", "orderDetail"].includes(state.currentPage) ? "orders" : state.currentPage === "home" ? "home" : state.currentPage === "shopSettings" ? "shopSettings" : state.currentPage === "deliveryCalendar" ? "delivery" : state.currentPage === "invoices" ? "other" : state.currentPage === "downloads" ? "downloads" : "customers";
+  const activeNav = state.currentPage === "fabricInventory" ? "stock" : ["orders", "orderDetail", "onePageOrder"].includes(state.currentPage) ? "orders" : state.currentPage === "home" ? "home" : state.currentPage === "shopSettings" ? "shopSettings" : state.currentPage === "deliveryCalendar" ? "delivery" : state.currentPage === "invoices" ? "other" : state.currentPage === "downloads" ? "downloads" : "customers";
   const showCustomerContext = ["detail", "createFitProfile"].includes(state.currentPage);
   const showFitProfileContext = showCustomerContext && (state.currentPage === "createFitProfile" || state.detailTab === "fitprofiles");
   const showFitProfileTask = state.currentPage === "createFitProfile";
@@ -4273,7 +6301,7 @@ function createFitProfileSetupComplete(garment) {
 function createFitProfileSetupValue(garment, key) {
   const garmentSelections = state.createFitProfileSelections[garment?.id] || {};
   if (garmentSelections[key]) return garmentSelections[key];
-  return key === "fit" ? "Select TryOn fit" : "Select TryOn size";
+  return key === "fit" ? "Select TryOn Fit" : "Select TryOn Size";
 }
 
 function createFitProfileOrderResults() {
@@ -4579,15 +6607,25 @@ function positionFloatingSelectMenu(menu, button, minWidth = 220) {
   const left = Math.min(Math.max(rect.left, viewportPadding), window.innerWidth - width - viewportPadding);
   const spaceBelow = window.innerHeight - rect.bottom - viewportPadding - gap;
   const spaceAbove = rect.top - viewportPadding - gap;
-  const maxHeight = Math.min(360, Math.max(180, Math.max(spaceBelow, spaceAbove)));
-  const opensUp = spaceBelow < 220 && spaceAbove > spaceBelow;
-  const top = opensUp ? Math.max(viewportPadding, rect.top - gap - maxHeight) : rect.bottom + gap;
+  const preferredMaxHeight = 360;
+  const availableHeight = Math.max(120, Math.min(preferredMaxHeight, Math.max(spaceBelow, spaceAbove)));
 
   menu.style.left = `${left}px`;
-  menu.style.top = `${top}px`;
   menu.style.width = `${width}px`;
-  menu.style.maxHeight = `${maxHeight}px`;
+  menu.style.maxHeight = `${availableHeight}px`;
   menu.style.overflowY = "auto";
+  menu.style.visibility = "hidden";
+  menu.classList.add("open");
+
+  const naturalHeight = Math.min(menu.scrollHeight || menu.offsetHeight || 180, preferredMaxHeight);
+  const opensUp = spaceBelow < naturalHeight && spaceAbove > spaceBelow;
+  const menuHeight = Math.min(naturalHeight, Math.max(120, opensUp ? spaceAbove : spaceBelow));
+  const top = opensUp ? Math.max(viewportPadding, rect.top - gap - menuHeight) : rect.bottom + gap;
+
+  menu.style.maxHeight = `${menuHeight}px`;
+  menu.style.top = `${top}px`;
+  menu.style.visibility = "visible";
+  menu.dataset.opens = opensUp ? "up" : "down";
 }
 
 function renderCreateFitProfileSelectMenu() {
@@ -4655,9 +6693,6 @@ function renderFitToolValueMenu() {
   const selectedValue = !state.createFitProfileToolValues[state.activeFitToolSelect] || state.createFitProfileToolValues[state.activeFitToolSelect] === "0"
     ? "0.00"
     : state.createFitProfileToolValues[state.activeFitToolSelect];
-  menu.style.left = `${state.activeFitToolSelectPosition?.left || 0}px`;
-  menu.style.top = `${state.activeFitToolSelectPosition?.top || 0}px`;
-  menu.style.width = `${Math.max(state.activeFitToolSelectPosition?.width || 220, 180)}px`;
   menu.innerHTML = fitToolValueOptions(direction)
     .map(
       (option) => `
@@ -4668,7 +6703,7 @@ function renderFitToolValueMenu() {
       `,
     )
     .join("");
-  menu.classList.add("open");
+  if (activeButton) positionFloatingSelectMenu(menu, activeButton, 180);
   translatePage(menu);
 }
 
@@ -4818,7 +6853,7 @@ function renderCreateFitProfileWorkspace() {
                 isEditingFitProfile
                   ? `<p class="mt-2 text-sm text-muted-foreground">FitTools can be adjusted, but the TryOn Fit and TryOn Size stay fixed.</p>`
                   : isCopyingFitProfile
-                    ? `<p class="mt-2 text-sm text-muted-foreground">Adjust the TryOn size, fit, or any FitTools used before saving.</p>`
+                    ? `<p class="mt-2 text-sm text-muted-foreground">Adjust the TryOn Size, Fit, or any FitTools used before saving.</p>`
                   : packageCompletionCopy
               }
             </div>
@@ -4950,7 +6985,7 @@ function renderCreateFitProfileWorkspace() {
                       <label>
                         <span class="mb-1.5 block text-sm font-medium">TryOn Size</span>
                         <button class="field fabric-select flex ${activeGarmentFitSelected ? "" : "opacity-60"}" data-create-fit-select="size" type="button" ${activeGarmentFitSelected ? "" : "disabled"}>
-                          <span class="fabric-select-label text-foreground">${activeGarmentFitSelected ? createFitProfileSetupValue(activeGarment, "size") : "Select TryOn fit first"}</span>
+                          <span class="fabric-select-label text-foreground">${activeGarmentFitSelected ? createFitProfileSetupValue(activeGarment, "size") : "Select TryOn Fit first"}</span>
                           <svg class="icon h-4 w-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>
                         </button>
                       </label>
@@ -5612,9 +7647,6 @@ function renderFabricSelectMenu() {
   const activeButton = document.querySelector(`[data-fabric-select="${state.activeFabricSelect}"][data-select-instance="${state.activeFabricSelectInstance}"]`);
   const selectedValue = activeButton?.dataset.value || "";
   const options = fabricSelectOptions[state.activeFabricSelect] || [];
-  menu.style.left = `${state.activeFabricSelectPosition?.left || 0}px`;
-  menu.style.top = `${state.activeFabricSelectPosition?.top || 0}px`;
-  menu.style.width = `${Math.max(state.activeFabricSelectPosition?.width || 240, 220)}px`;
   menu.innerHTML = `
     <button class="fabric-select-option ${!selectedValue ? "selected" : ""} flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left hover:bg-secondary" data-value="">
       <span>${activeButton?.dataset.filterPlaceholder || "Any"}</span>
@@ -5631,7 +7663,7 @@ function renderFabricSelectMenu() {
       )
       .join("")}
   `;
-  menu.classList.add("open");
+  if (activeButton) positionFloatingSelectMenu(menu, activeButton);
   translatePage(menu);
 }
 
@@ -5980,6 +8012,7 @@ function anyModalOpen() {
     el("themeModal").classList.contains("open") ||
     el("cheatCodesModal").classList.contains("open") ||
     el("createOrderStopModal").classList.contains("open") ||
+    el("createOrderFlowModal")?.classList.contains("open") ||
     el("fabricScannerModal").classList.contains("open") ||
     el("fabricPriceModal").classList.contains("open") ||
     el("ordersAdvancedSearchModal").classList.contains("open") ||
@@ -5988,6 +8021,7 @@ function anyModalOpen() {
     el("ordersColumnSettingsModal").classList.contains("open") ||
     el("fitProfileModal").classList.contains("open") ||
     el("fitProfileHelpModal").classList.contains("open") ||
+    el("onePageOrderCardModal")?.classList.contains("open") ||
     el("editFitProfileSaveModal").classList.contains("open") ||
     el("createFitProfileStartModal").classList.contains("open") ||
     el("orderFormStartModal")?.classList.contains("open") ||
@@ -6191,6 +8225,7 @@ function closeModals() {
   el("themeModal").classList.remove("open");
   el("cheatCodesModal").classList.remove("open");
   el("createOrderStopModal").classList.remove("open");
+  el("createOrderFlowModal")?.classList.remove("open");
   el("fabricScannerModal").classList.remove("open");
   el("fabricPriceModal").classList.remove("open");
   el("fabricAdvancedFiltersPanel").classList.remove("open");
@@ -6200,6 +8235,7 @@ function closeModals() {
   el("ordersColumnSettingsModal").classList.remove("open");
   el("fitProfileModal").classList.remove("open");
   el("fitProfileHelpModal").classList.remove("open");
+  el("onePageOrderCardModal")?.classList.remove("open");
   el("editFitProfileSaveModal").classList.remove("open");
   el("createFitProfileStartModal").classList.remove("open");
   el("orderFormStartModal")?.classList.remove("open");
@@ -6209,6 +8245,7 @@ function closeModals() {
   el("logoutConfirmModal").classList.remove("open");
   el("shopSettingsUnsavedModal")?.classList.remove("open");
   state.pendingShopSettingsNavigation = null;
+  state.activeOnePageOrderCardIndex = null;
   closeAccountSettingsSelects();
   resetAccountPasswordPanel();
   state.activeOrdersSelect = null;
@@ -6256,6 +8293,7 @@ const settingsThemeLabels = {
   yellow: "Yellow",
   noir: "Noir",
   "corporate-blue": "Corporate Blue",
+  legacy: "Legacy",
 };
 
 const settingsFontLabels = {
@@ -6346,7 +8384,7 @@ function renderAccountSettingsSelects() {
 
   setText(themeLabel, settingsThemeLabels[state.theme] || "Canvas");
   if (themeSwatch) themeSwatch.className = `settings-swatch ${state.theme}`;
-  setText(fontLabel, settingsFontLabels[state.font] || "Figtree");
+  setText(fontLabel, settingsFontLabels[state.font] || "IBM Plex Sans");
   setText(modeLabel, settingsModeLabels[state.mode] || "Light");
 
   document.querySelectorAll(".settings-select").forEach((select) => {
@@ -7350,6 +9388,17 @@ function setCheatCodesModal(open) {
 
 function setCreateOrderStopModal(open) {
   el("createOrderStopModal").classList.toggle("open", open);
+  if (!open) setOverlay(anyModalOpen());
+  else setOverlay(true);
+}
+
+function setCreateOrderFlowModal(open) {
+  el("createOrderFlowModal")?.classList.toggle("open", open);
+  if (open) {
+    state.createOrderFlowCategory = "trousers";
+    state.createOrderFlowSearch = "";
+    renderCreateOrderFlowModal();
+  }
   setOverlay(open || anyModalOpen());
 }
 
@@ -8213,6 +10262,328 @@ function wireEvents() {
   el("closeFabricPriceModalBtn").addEventListener("click", () => setFabricPriceModal(false));
   el("closeCreateOrderStopModalBtn").addEventListener("click", () => setCreateOrderStopModal(false));
   el("dismissCreateOrderStopModalBtn").addEventListener("click", () => setCreateOrderStopModal(false));
+  el("closeCreateOrderFlowModalBtn")?.addEventListener("click", () => setCreateOrderFlowModal(false));
+  el("cancelCreateOrderFlowModalBtn")?.addEventListener("click", () => setCreateOrderFlowModal(false));
+  el("createOrderFlowModal")?.addEventListener("click", (event) => {
+    const categoryButton = event.target.closest("[data-create-order-flow-category]");
+    if (categoryButton) {
+      event.stopPropagation();
+      state.createOrderFlowCategory = categoryButton.dataset.createOrderFlowCategory;
+      state.createOrderFlowSearch = "";
+      renderCreateOrderFlowModal();
+      return;
+    }
+
+    const itemButton = event.target.closest("[data-create-order-flow-item]");
+    if (!itemButton) return;
+    event.stopPropagation();
+    setCreateOrderFlowItem(itemButton.dataset.createOrderFlowItem);
+  });
+  el("createOrderFlowSearchInput")?.addEventListener("input", (event) => {
+    state.createOrderFlowSearch = event.target.value;
+    renderCreateOrderFlowModal();
+    requestAnimationFrame(() => {
+      const input = el("createOrderFlowSearchInput");
+      input?.focus();
+      input?.setSelectionRange(input.value.length, input.value.length);
+    });
+  });
+  el("continueCreateOrderAnywayBtn")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setCreateOrderStopModal(false);
+    setCreateOrderFlowModal(true);
+  });
+  el("beginCreateOrderFlowBtn")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const selectedItem = createOrderFlowAllItems().find((item) => createOrderFlowItemSelected(item));
+    if (!selectedItem) {
+      showToast("Select an available order item first.");
+      return;
+    }
+    startOnePageOrderFlow();
+  });
+  el("onePageOrderWorkspace")?.addEventListener("click", (event) => {
+    const backButton = event.target.closest("#backToOrdersFromOnePageOrderBtn");
+    if (backButton) {
+      event.stopPropagation();
+      setPage("orders");
+      return;
+    }
+
+    const fabricOption = event.target.closest("[data-one-page-fabric-option]");
+    if (fabricOption) {
+      event.stopPropagation();
+      updateOnePageOrderLine(Number(fabricOption.dataset.onePageFabricIndex), "fabric", fabricOption.dataset.onePageFabricOption || "");
+      state.activeOnePageFabricSearch = null;
+      state.activeOnePageFabricSearchPosition = null;
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const fabricInputClick = event.target.closest("[data-one-page-fabric-input]");
+    if (fabricInputClick) {
+      event.stopPropagation();
+      const index = Number(fabricInputClick.dataset.onePageFabricInput);
+      setOnePageFabricSearchPosition(index, fabricInputClick);
+      state.activeOnePageOrderSelect = null;
+      state.activeOnePageOrderSelectPosition = null;
+      requestAnimationFrame(() => {
+        renderOnePageOrderPage();
+        const input = document.querySelector(`[data-one-page-fabric-input="${index}"]`);
+        input?.focus();
+        input?.setSelectionRange(input.value.length, input.value.length);
+      });
+      return;
+    }
+
+    const orderSelectButton = event.target.closest("[data-one-page-order-select]");
+    if (orderSelectButton) {
+      event.stopPropagation();
+      openOnePageOrderSelect(orderSelectButton);
+      return;
+    }
+
+    const fitModeButton = event.target.closest("[data-one-page-order-fit-mode]");
+    if (fitModeButton) {
+      event.stopPropagation();
+      state.onePageOrderFields.fitProfileMode = fitModeButton.dataset.onePageOrderFitMode;
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const fitProfileButton = event.target.closest("[data-one-page-order-fit-profile]");
+    if (fitProfileButton) {
+      event.stopPropagation();
+      state.onePageOrderFields.fitProfileExisting = fitProfileButton.dataset.onePageOrderFitProfile;
+      state.onePageOrderFields.fitProfileName = fitProfileButton.dataset.onePageOrderFitProfile;
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const designHelpButton = event.target.closest("[data-one-page-order-design-help]");
+    if (designHelpButton) {
+      event.stopPropagation();
+      setFitProfileHelpModal(true, `How to choose ${designHelpButton.dataset.onePageOrderDesignHelp}`);
+      return;
+    }
+
+    const designCopyAllButton = event.target.closest("[data-one-page-order-design-copy-all]");
+    if (designCopyAllButton) {
+      event.stopPropagation();
+      setAllOnePageOrderDesignCopyRows(
+        designCopyAllButton.dataset.onePageOrderDesignCopyAll === "on",
+        [...document.querySelectorAll("[data-one-page-order-design-copy-row]")].map((button) => button.dataset.onePageOrderDesignCopyRow),
+      );
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const designRowCopyButton = event.target.closest("[data-one-page-order-design-copy-row]");
+    if (designRowCopyButton) {
+      event.stopPropagation();
+      toggleOnePageOrderDesignCopyRow(designRowCopyButton.dataset.onePageOrderDesignCopyRow);
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const designOrderCopyButton = event.target.closest("[data-one-page-order-design-copy-order]");
+    if (designOrderCopyButton) {
+      event.stopPropagation();
+      copyOnePageOrderDesignToAll(Number(designOrderCopyButton.dataset.onePageOrderDesignCopyOrder));
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const designExtraButton = event.target.closest("[data-one-page-order-design-extra]");
+    if (designExtraButton) {
+      event.stopPropagation();
+      const index = Number(designExtraButton.dataset.onePageOrderDesignIndex);
+      const key = designExtraButton.dataset.onePageOrderDesignExtra;
+      const design = state.onePageOrderDesigns[index] || onePageOrderDesignDefaults();
+      const enabled = !(design[key] || design[`${key}Enabled`]);
+      updateOnePageOrderDesign(index, key, enabled);
+      updateOnePageOrderDesign(index, `${key}Enabled`, enabled);
+      showToast(`${key === "monogram" ? "Monogram" : "Branding options"} ${enabled ? "added to" : "removed from"} Order ${index + 1}.`);
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const stepNavButton = event.target.closest("[data-one-page-order-step-nav]");
+    if (stepNavButton) {
+      event.stopPropagation();
+      navigateOnePageOrderStep(stepNavButton.dataset.onePageOrderStepNav, stepNavButton.dataset.onePageOrderStepTarget);
+      return;
+    }
+
+    const runningInfoToggle = event.target.closest("[data-one-page-running-info-toggle]");
+    if (runningInfoToggle) {
+      event.stopPropagation();
+      state.onePageOrderRunningInfoCollapsed = !state.onePageOrderRunningInfoCollapsed;
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const orderCard = event.target.closest("[data-one-page-order-card]");
+    if (orderCard) {
+      event.stopPropagation();
+      setOnePageOrderCardModal(true, Number(orderCard.dataset.onePageOrderCard));
+      return;
+    }
+
+    const sectionButton = event.target.closest("[data-one-page-order-section]");
+    if (sectionButton) {
+      event.stopPropagation();
+      const sectionId = sectionButton.dataset.onePageOrderSection;
+      if (state.onePageOrderCollapsedSections.has(sectionId)) {
+        state.onePageOrderCollapsedSections.delete(sectionId);
+      } else {
+        state.onePageOrderCollapsedSections.add(sectionId);
+      }
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const actionButton = event.target.closest("[data-one-page-order-action]");
+    if (actionButton) {
+      event.stopPropagation();
+      const messages = {
+        process: "Order processing previewed.",
+        hold: "Order hold previewed.",
+        discount: "Discount preview opened.",
+      };
+      showToast(messages[actionButton.dataset.onePageOrderAction] || "Order action previewed.");
+    }
+  });
+  el("onePageOrderWorkspace")?.addEventListener("change", (event) => {
+    const designCopyAllInput = event.target.closest("[data-one-page-order-design-copy-all]");
+    if (designCopyAllInput) {
+      event.stopPropagation();
+      setAllOnePageOrderDesignCopyRows(
+        designCopyAllInput.dataset.onePageOrderDesignCopyAll === "on",
+        [...document.querySelectorAll("[data-one-page-order-design-copy-row]")].map((button) => button.dataset.onePageOrderDesignCopyRow),
+      );
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const designCopyRowInput = event.target.closest("[data-one-page-order-design-copy-row]");
+    if (designCopyRowInput) {
+      event.stopPropagation();
+      toggleOnePageOrderDesignCopyRow(designCopyRowInput.dataset.onePageOrderDesignCopyRow);
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const lineField = event.target.closest("[data-one-page-order-line-field]");
+    if (lineField) {
+      event.stopPropagation();
+      updateOnePageOrderLine(Number(lineField.dataset.onePageOrderLine), lineField.dataset.onePageOrderLineField, lineField.value);
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const paymentField = event.target.closest("[data-one-page-order-payment-field]");
+    if (paymentField) {
+      event.stopPropagation();
+      updateOnePageOrderPayment(Number(paymentField.dataset.onePageOrderPaymentIndex), paymentField.dataset.onePageOrderPaymentField, paymentField.value);
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const detailField = event.target.closest("[data-one-page-order-detail-field]");
+    if (detailField) {
+      event.stopPropagation();
+      updateOnePageOrderDetail(Number(detailField.dataset.onePageOrderDetailIndex), detailField.dataset.onePageOrderDetailField, detailField.value);
+      renderOnePageOrderPage();
+      return;
+    }
+
+    const field = event.target.closest("[data-one-page-order-field]");
+    if (!field) return;
+    event.stopPropagation();
+    const key = field.dataset.onePageOrderField;
+    updateOnePageOrderField(key, field.type === "checkbox" ? field.checked : field.value);
+    renderOnePageOrderPage();
+  });
+  el("onePageOrderWorkspace")?.addEventListener("focusin", (event) => {
+    const fabricInput = event.target.closest("[data-one-page-fabric-input]");
+    if (!fabricInput) return;
+    const index = Number(fabricInput.dataset.onePageFabricInput);
+    if (state.activeOnePageFabricSearch === index && document.querySelector(`[data-one-page-fabric-menu="${index}"]`)) return;
+    setOnePageFabricSearchPosition(index, fabricInput);
+    state.activeOnePageOrderSelect = null;
+    state.activeOnePageOrderSelectPosition = null;
+    requestAnimationFrame(() => {
+      renderOnePageOrderPage();
+      const input = document.querySelector(`[data-one-page-fabric-input="${index}"]`);
+      input?.focus();
+      input?.setSelectionRange(input.value.length, input.value.length);
+    });
+  });
+  el("onePageOrderWorkspace")?.addEventListener("input", (event) => {
+    const fabricInput = event.target.closest("[data-one-page-fabric-input]");
+    if (fabricInput) {
+      event.stopPropagation();
+      const index = Number(fabricInput.dataset.onePageFabricInput);
+      setOnePageFabricSearchPosition(index, fabricInput);
+      updateOnePageOrderLine(index, "fabric", fabricInput.value);
+      renderOnePageOrderPage();
+      requestAnimationFrame(() => {
+        const input = document.querySelector(`[data-one-page-fabric-input="${index}"]`);
+        input?.focus();
+        input?.setSelectionRange(input.value.length, input.value.length);
+      });
+      return;
+    }
+
+    const designInput = event.target.closest("[data-one-page-order-design-input]");
+    if (designInput) {
+      event.stopPropagation();
+      updateOnePageOrderDesign(
+        Number(designInput.dataset.onePageOrderDesignIndex),
+        designInput.dataset.onePageOrderDesignInput,
+        designInput.value,
+      );
+      return;
+    }
+
+    const paymentInput = event.target.closest("[data-one-page-order-payment-field]");
+    if (paymentInput) {
+      event.stopPropagation();
+      updateOnePageOrderPayment(Number(paymentInput.dataset.onePageOrderPaymentIndex), paymentInput.dataset.onePageOrderPaymentField, paymentInput.value);
+      return;
+    }
+
+    const detailInput = event.target.closest("[data-one-page-order-detail-field]");
+    if (detailInput) {
+      event.stopPropagation();
+      updateOnePageOrderDetail(Number(detailInput.dataset.onePageOrderDetailIndex), detailInput.dataset.onePageOrderDetailField, detailInput.value);
+      return;
+    }
+
+    const field = event.target.closest("[data-one-page-order-field]");
+    if (!field || field.type === "checkbox") return;
+    event.stopPropagation();
+    const key = field.dataset.onePageOrderField;
+    updateOnePageOrderField(key, field.value);
+    if (key === "fitProfileSearchQuery") {
+      renderOnePageOrderPage();
+      requestAnimationFrame(() => {
+        const input = document.querySelector('[data-one-page-order-field="fitProfileSearchQuery"]');
+        input?.focus();
+        input?.setSelectionRange(input.value.length, input.value.length);
+      });
+    }
+  });
+  el("onePageOrderSelectMenu")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const option = event.target.closest(".one-page-order-select-option");
+    if (!option || !state.activeOnePageOrderSelect) return;
+    updateOnePageOrderSelectValue(state.activeOnePageOrderSelect, option.dataset.value || "");
+    state.activeOnePageOrderSelect = null;
+    state.activeOnePageOrderSelectPosition = null;
+    renderOnePageOrderPage();
+  });
   el("doneFabricPriceModalBtn").addEventListener("click", () => setFabricPriceModal(false));
   el("fabricExportBtn").addEventListener("click", () => showToast("Export ready for fabric inventory."));
 
@@ -8837,6 +11208,32 @@ function wireEvents() {
     localStorage.setItem("relocate-order-remarks", JSON.stringify(state.orderRemarks));
     showToast("Remarks saved.");
   });
+  el("onePageOrderCardModal")?.addEventListener("click", (event) => {
+    const closeButton = event.target.closest("#closeOnePageOrderCardModalBtn");
+    if (closeButton) {
+      setOnePageOrderCardModal(false);
+      return;
+    }
+    const saveRemarksButton = event.target.closest("#saveOnePageOrderRemarksBtn");
+    if (saveRemarksButton) {
+      const key = String(Number.isInteger(state.activeOnePageOrderCardIndex) ? state.activeOnePageOrderCardIndex : 0);
+      state.onePageOrderRemarks[key] = el("onePageOrderRemarksInput")?.value || "";
+      localStorage.setItem("relocate-one-page-order-remarks", JSON.stringify(state.onePageOrderRemarks));
+      showToast("Remarks saved.");
+      return;
+    }
+    const tabButton = event.target.closest("[data-one-page-order-card-tab]");
+    if (tabButton) {
+      state.activeOnePageOrderCardTab = tabButton.dataset.onePageOrderCardTab;
+      el("onePageOrderCardModal").innerHTML = renderOnePageOrderCardModal();
+      return;
+    }
+    const columnButton = event.target.closest("[data-one-page-order-card-column]");
+    if (columnButton) {
+      state.activeOnePageOrderCardIndex = Number(columnButton.dataset.onePageOrderCardColumn);
+      el("onePageOrderCardModal").innerHTML = renderOnePageOrderCardModal();
+    }
+  });
 
   el("companyInfoViewBtn").addEventListener("click", () => {
     state.companyInfoVisible = !state.companyInfoVisible;
@@ -9413,7 +11810,7 @@ function wireEvents() {
     button.addEventListener("click", () => {
       state.font = button.dataset.fontOption;
       applyTheme();
-      showToast(`${settingsFontLabels[state.font] || "Figtree"} font applied.`);
+      showToast(`${settingsFontLabels[state.font] || "IBM Plex Sans"} font applied.`);
     });
   });
   document.querySelectorAll(".switch-store-action").forEach((button) => {
@@ -9950,6 +12347,12 @@ function wireEvents() {
   });
 
   document.addEventListener("click", (event) => {
+    const createOrderTrigger = event.target.closest("#dashboardCreateOrderBtn, #ordersCreateOrderBtn");
+    if (createOrderTrigger) {
+      setCreateOrderStopModal(true);
+      return;
+    }
+
     if (!event.target.closest(".actions-btn") && !event.target.closest(".action-menu") && state.activeMenuId) {
       state.activeMenuId = null;
       state.activeMenuPosition = null;
@@ -10046,6 +12449,16 @@ function wireEvents() {
       state.activeCreateFitProfileSelectPosition = null;
       renderCreateFitProfileSelectMenu();
     }
+    if (!event.target.closest("[data-one-page-order-select]") && !event.target.closest("#onePageOrderSelectMenu")) {
+      state.activeOnePageOrderSelect = null;
+      state.activeOnePageOrderSelectPosition = null;
+      renderOnePageOrderSelectMenu();
+    }
+    if (state.activeOnePageFabricSearch !== null && !event.target.closest("[data-one-page-fabric-picker]")) {
+      state.activeOnePageFabricSearch = null;
+      state.activeOnePageFabricSearchPosition = null;
+      if (state.currentPage === "onePageOrder") renderOnePageOrderPage();
+    }
     if (!event.target.closest("#orderFormStartItemBtn") && !event.target.closest("#orderFormStartItemMenu")) {
       el("orderFormStartItemMenu")?.classList.add("hidden");
       el("orderFormStartItemBtn")?.setAttribute("aria-expanded", "false");
@@ -10102,6 +12515,10 @@ function wireEvents() {
         state.orderFormPreviewUnlocked = !state.orderFormPreviewUnlocked;
         if (state.currentPage === "downloads" && state.downloadsUnlocked && state.orderFormView === "library") renderOrderFormLibrary();
         showToast(state.orderFormPreviewUnlocked ? "Order form preview unlocked." : "Order form preview hidden.");
+        state.secretActionSequence = "";
+      }
+      if (state.secretActionSequence.endsWith("OOO")) {
+        openOnePageOrderCheatPage();
         state.secretActionSequence = "";
       }
       if (state.secretActionSequence.endsWith("TTT")) {
@@ -10188,17 +12605,38 @@ function wireEvents() {
     }
 
     if (event.key === "Escape") {
-      if (anyModalOpen()) closeModals();
+      const hadModalOpen = anyModalOpen();
+      if (hadModalOpen) closeModals();
       if (state.activeNavPopout) closeNavPopouts();
+      if (state.activeOnePageOrderSelect) {
+        state.activeOnePageOrderSelect = null;
+        state.activeOnePageOrderSelectPosition = null;
+        renderOnePageOrderSelectMenu();
+      }
+      if (state.activeOnePageFabricSearch !== null) {
+        state.activeOnePageFabricSearch = null;
+        state.activeOnePageFabricSearchPosition = null;
+        if (state.currentPage === "onePageOrder") renderOnePageOrderPage();
+      }
       if (state.activeMenuId) {
         state.activeMenuId = null;
         renderRows();
+      }
+      if (!hadModalOpen && state.currentPage === "home" && !state.dashboardOverlayHidden) {
+        state.dashboardOverlayHidden = true;
+        renderDashboard();
       }
     }
   });
 
   const repositionOpenDropdowns = () => {
     if (state.activeCreateFitProfileSelect) renderCreateFitProfileSelectMenu();
+    if (state.activeOnePageOrderSelect) renderOnePageOrderSelectMenu();
+    if (state.activeOnePageFabricSearch !== null && state.currentPage === "onePageOrder") {
+      const input = document.querySelector(`[data-one-page-fabric-input="${state.activeOnePageFabricSearch}"]`);
+      setOnePageFabricSearchPosition(state.activeOnePageFabricSearch, input);
+      renderOnePageOrderPage();
+    }
     if (state.activeFitToolSelect) renderFitToolValueMenu();
     if (state.accountSettingsSelect) renderAccountSettingsSelects();
     positionCreateFitProfileStartPackageMenu();
@@ -10252,6 +12690,160 @@ renderPrimaryNavigation();
 renderCompanyView();
 applyTheme();
 applyActionColumnMode();
+document.addEventListener("click", (event) => {
+  const runningInfoToggle = event.target.closest("[data-one-page-running-info-toggle]");
+  if (runningInfoToggle) {
+    state.onePageOrderRunningInfoCollapsed = !state.onePageOrderRunningInfoCollapsed;
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const createOrderTrigger = event.target.closest("#dashboardCreateOrderBtn, #ordersCreateOrderBtn");
+  if (createOrderTrigger) {
+    setCreateOrderStopModal(true);
+    return;
+  }
+
+  const continueAnyway = event.target.closest("#continueCreateOrderAnywayBtn");
+  if (continueAnyway) {
+    setCreateOrderStopModal(false);
+    setCreateOrderFlowModal(true);
+    return;
+  }
+
+  const beginCreateOrderFlow = event.target.closest("#beginCreateOrderFlowBtn");
+  if (beginCreateOrderFlow) {
+    startOnePageOrderFlow();
+    return;
+  }
+
+  const itemButton = event.target.closest("[data-create-order-flow-item]");
+  if (itemButton) {
+    setCreateOrderFlowItem(itemButton.dataset.createOrderFlowItem);
+    return;
+  }
+
+  const backFromOnePageOrder = event.target.closest("#backToOrdersFromOnePageOrderBtn");
+  if (backFromOnePageOrder) {
+    setPage("orders");
+    return;
+  }
+
+  const orderSelectOption = event.target.closest(".one-page-order-select-option");
+  if (orderSelectOption && state.activeOnePageOrderSelect) {
+    updateOnePageOrderSelectValue(state.activeOnePageOrderSelect, orderSelectOption.dataset.value || "");
+    state.activeOnePageOrderSelect = null;
+    state.activeOnePageOrderSelectPosition = null;
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const orderSelectButton = event.target.closest("[data-one-page-order-select]");
+  if (orderSelectButton) {
+    openOnePageOrderSelect(orderSelectButton);
+    return;
+  }
+
+  const fitModeButton = event.target.closest("[data-one-page-order-fit-mode]");
+  if (fitModeButton) {
+    state.onePageOrderFields.fitProfileMode = fitModeButton.dataset.onePageOrderFitMode;
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const fitProfileButton = event.target.closest("[data-one-page-order-fit-profile]");
+  if (fitProfileButton) {
+    state.onePageOrderFields.fitProfileExisting = fitProfileButton.dataset.onePageOrderFitProfile;
+    state.onePageOrderFields.fitProfileName = fitProfileButton.dataset.onePageOrderFitProfile;
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const designHelpButton = event.target.closest("[data-one-page-order-design-help]");
+  if (designHelpButton) {
+    setFitProfileHelpModal(true, `How to choose ${designHelpButton.dataset.onePageOrderDesignHelp}`);
+    return;
+  }
+
+  const designCopyAllButton = event.target.closest("[data-one-page-order-design-copy-all]");
+  if (designCopyAllButton) {
+    setAllOnePageOrderDesignCopyRows(
+      designCopyAllButton.dataset.onePageOrderDesignCopyAll === "on",
+      [...document.querySelectorAll("[data-one-page-order-design-copy-row]")].map((button) => button.dataset.onePageOrderDesignCopyRow),
+    );
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const designRowCopyButton = event.target.closest("[data-one-page-order-design-copy-row]");
+  if (designRowCopyButton) {
+    toggleOnePageOrderDesignCopyRow(designRowCopyButton.dataset.onePageOrderDesignCopyRow);
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const designOrderCopyButton = event.target.closest("[data-one-page-order-design-copy-order]");
+  if (designOrderCopyButton) {
+    copyOnePageOrderDesignToAll(Number(designOrderCopyButton.dataset.onePageOrderDesignCopyOrder));
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const designExtraButton = event.target.closest("[data-one-page-order-design-extra]");
+  if (designExtraButton) {
+    const index = Number(designExtraButton.dataset.onePageOrderDesignIndex);
+    const key = designExtraButton.dataset.onePageOrderDesignExtra;
+    const design = state.onePageOrderDesigns[index] || onePageOrderDesignDefaults();
+    const enabled = !(design[key] || design[`${key}Enabled`]);
+    updateOnePageOrderDesign(index, key, enabled);
+    updateOnePageOrderDesign(index, `${key}Enabled`, enabled);
+    showToast(`${key === "monogram" ? "Monogram" : "Branding options"} ${enabled ? "added to" : "removed from"} Order ${index + 1}.`);
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const stepNavButton = event.target.closest("[data-one-page-order-step-nav]");
+  if (stepNavButton) {
+    navigateOnePageOrderStep(stepNavButton.dataset.onePageOrderStepNav, stepNavButton.dataset.onePageOrderStepTarget);
+    return;
+  }
+
+  const orderSectionButton = event.target.closest("[data-one-page-order-section]");
+  if (orderSectionButton) {
+    const sectionId = orderSectionButton.dataset.onePageOrderSection;
+    if (state.onePageOrderCollapsedSections.has(sectionId)) {
+      state.onePageOrderCollapsedSections.delete(sectionId);
+    } else {
+      state.onePageOrderCollapsedSections.add(sectionId);
+    }
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const orderActionButton = event.target.closest("[data-one-page-order-action]");
+  if (orderActionButton) {
+    const messages = {
+      process: "Order processing previewed.",
+      hold: "Order hold previewed.",
+      discount: "Discount preview opened.",
+    };
+    showToast(messages[orderActionButton.dataset.onePageOrderAction] || "Order action previewed.");
+  }
+});
+document.addEventListener("change", (event) => {
+  const lineField = event.target.closest("[data-one-page-order-line-field]");
+  if (lineField) {
+    updateOnePageOrderLine(Number(lineField.dataset.onePageOrderLine), lineField.dataset.onePageOrderLineField, lineField.value);
+    renderOnePageOrderPage();
+    return;
+  }
+
+  const field = event.target.closest("[data-one-page-order-field]");
+  if (!field) return;
+  const key = field.dataset.onePageOrderField;
+  updateOnePageOrderField(key, field.type === "checkbox" ? field.checked : field.value);
+  renderOnePageOrderPage();
+});
 wireEvents();
 window.addEventListener("beforeunload", (event) => {
   if (!state.shopSettingsDirty) return;
