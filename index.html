@@ -342,6 +342,21 @@
         opacity: 0.45;
       }
 
+      .sort-header-btn .sort-indicator {
+        opacity: 0;
+        transition: opacity 140ms ease, color 140ms ease;
+      }
+
+      .sort-header-btn:hover .sort-indicator,
+      .sort-header-btn:focus-visible .sort-indicator,
+      .sort-header-btn .sort-indicator.active {
+        opacity: 1;
+      }
+
+      .sort-header-btn .sort-indicator.active {
+        color: hsl(var(--foreground));
+      }
+
       .report-priority-btn {
         min-height: 34px;
         padding-left: 10px;
@@ -676,6 +691,37 @@
         transform: translateY(0);
       }
 
+      .mobile-navigation,
+      .mobile-nav-scrim,
+      .mobile-nav-drawer {
+        display: none;
+      }
+
+      .mobile-nav-link {
+        display: flex;
+        min-height: 42px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-radius: 8px;
+        padding: 0 12px;
+        text-align: left;
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      .mobile-nav-link:hover {
+        background: hsl(var(--secondary));
+      }
+
+      .mobile-nav-page {
+        display: none;
+      }
+
+      .mobile-nav-page.active {
+        display: block;
+      }
+
       .account-menu-advanced,
       :root[data-account-menu="advanced"] .account-menu-final-only {
         display: none !important;
@@ -773,7 +819,7 @@
         position: absolute;
         left: 0;
         top: calc(100% + 8px);
-        z-index: 1500;
+        z-index: 3200;
         width: 230px;
         border: 1px solid hsl(var(--border));
         border-radius: 10px;
@@ -793,6 +839,20 @@
       .date-tooltip-wrap:focus-within .date-tooltip {
         opacity: 1;
         transform: translateY(0);
+      }
+
+      #orderDetailSummaryCard,
+      #orderDetailMetrics,
+      #orderDetailMetrics .metric-cell {
+        overflow: visible;
+      }
+
+      #orderDetailMetrics .metric-cell {
+        position: relative;
+      }
+
+      #orderDetailMetrics .metric-cell:has(.date-tooltip-wrap) {
+        z-index: 40;
       }
 
       .delivery-delay-cell {
@@ -1032,6 +1092,13 @@
         transform: translate(-50%, -50%) scale(1);
       }
 
+      #createOrderFlowModal {
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100dvh - 32px);
+        overflow: hidden;
+      }
+
       #orderFormStartModal,
       #createFitProfileStartModal {
         overflow: visible;
@@ -1128,11 +1195,6 @@
         width: 100%;
         min-width: 860px;
         table-layout: fixed;
-      }
-
-      #customerTable .customer-check-cell {
-        width: 56px;
-        min-width: 56px;
       }
 
       #customerTable .customer-user-cell {
@@ -1274,6 +1336,30 @@
         margin-right: auto;
       }
 
+      .customer-mobile-cards {
+        display: none;
+      }
+
+      .customer-mobile-card {
+        border-bottom: 1px solid hsl(var(--border));
+        background: hsl(var(--card));
+        padding: 18px;
+      }
+
+      .customer-mobile-card:last-child {
+        border-bottom: 0;
+      }
+
+      .customer-mobile-card:hover {
+        background: hsl(var(--surface));
+      }
+
+      .customer-mobile-card-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
       #ordersTable .sticky-action-cell {
         position: sticky !important;
         width: 132px;
@@ -1392,6 +1478,21 @@
 
       .create-fit-tools-main {
         min-width: 0;
+      }
+
+      .create-fit-tool-pair {
+        align-items: stretch;
+      }
+
+      .create-fit-tool-field {
+        min-width: 0;
+        border-radius: 10px;
+        background: transparent;
+        padding: 0;
+      }
+
+      .create-fit-tool-field .field {
+        background: hsl(var(--card));
       }
 
       .create-fit-measurements-rail {
@@ -2010,6 +2111,22 @@
         border-bottom: 0;
       }
 
+      .fit-history-table {
+        min-width: 960px;
+      }
+
+      .fit-history-table th,
+      .fit-history-table td {
+        border-bottom: 1px solid hsl(var(--border));
+        padding: 12px 14px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .fit-history-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
       .search-result {
         display: flex;
         width: 100%;
@@ -2025,41 +2142,41 @@
         background: hsl(var(--secondary));
       }
 
-      @media (max-width: 980px) {
+      @media (max-width: 1024px) {
         .shell {
-          grid-template-columns: 1fr;
+          grid-template-columns: minmax(0, 1fr) !important;
+          width: 100%;
+          max-width: 100vw;
         }
 
-        :root[data-nav="top"] .sidebar {
-          display: none;
+        main {
+          width: 100%;
+          min-width: 0;
         }
 
+        .sidebar,
+        .top-navigation,
+        :root[data-nav="sidebar"] .sidebar,
         :root[data-nav="top"] .top-navigation {
-          display: flex !important;
-          height: auto;
-          min-height: 56px;
-          justify-content: flex-start;
-          gap: 16px;
-          overflow-x: auto;
-          overscroll-behavior-x: contain;
-          padding: 8px 12px;
-          scrollbar-width: none;
-        }
-
-        :root[data-nav="sidebar"] .shell {
-          grid-template-columns: 280px minmax(0, 1fr);
-        }
-
-        :root[data-nav="sidebar"] .sidebar {
-          display: flex !important;
-        }
-
-        :root[data-nav="sidebar"] .top-navigation {
           display: none !important;
         }
 
-        .top-navigation::-webkit-scrollbar {
-          display: none;
+        .mobile-navigation {
+          display: flex;
+        }
+
+        .mobile-nav-scrim.open {
+          display: block;
+        }
+
+        .mobile-nav-drawer {
+          display: flex;
+          transform: translateX(-100%);
+          transition: transform 180ms ease;
+        }
+
+        .mobile-nav-drawer.open {
+          transform: translateX(0);
         }
 
         .top-navigation > div {
@@ -2090,6 +2207,117 @@
 
         .table-wrap {
           max-height: none;
+        }
+
+        #overviewPage > section > div:first-child,
+        #overviewPage > section > div:nth-child(2) {
+          padding: 18px;
+        }
+
+        #overviewPage > section > div:first-child {
+          display: grid;
+          grid-template-columns: minmax(260px, 1fr) max-content max-content max-content;
+          align-items: center;
+          gap: 12px;
+        }
+
+        #overviewPage > section > div:first-child > div {
+          display: contents;
+        }
+
+        #overviewPage > section > div:first-child label {
+          width: 100%;
+          max-width: none;
+        }
+
+        #advancedBtn,
+        #exportBtn,
+        #addCustomerBtn {
+          width: auto;
+          white-space: nowrap;
+          justify-content: center;
+        }
+
+        #overviewPage > section > div:nth-child(2) {
+          flex-direction: row;
+          align-items: center;
+        }
+
+        #resultSummary {
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+
+        #ordersViewControls {
+          width: auto;
+          margin-left: auto;
+          flex: 0 0 auto;
+          justify-content: flex-end;
+        }
+
+        #overviewPage footer {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        #overviewPage footer > div:first-child {
+          flex: 0 0 auto;
+        }
+
+        #customerPagination {
+          min-width: 0;
+          justify-content: flex-end;
+          overflow-x: auto;
+          padding-bottom: 2px;
+          scrollbar-width: none;
+        }
+
+        #customerPagination::-webkit-scrollbar {
+          display: none;
+        }
+
+        #customerPagination .page-link,
+        #customerPagination .page-number {
+          flex: 0 0 auto;
+        }
+
+      }
+
+      @media (min-width: 701px) and (max-width: 1024px) {
+        #ordersPage .orders-filter-bar {
+          align-items: end;
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: wrap;
+        }
+
+        #ordersPage .orders-filter-bar > :not(.hidden) {
+          flex: 0 1 auto;
+        }
+
+        #ordersPage .orders-filter-bar .fabric-filter-field,
+        #ordersPage .orders-filter-bar > .relative {
+          min-width: 190px;
+          width: auto;
+        }
+
+        #ordersPage .orders-filter-bar #ordersAdvancedFiltersBtn {
+          flex: 0 0 auto;
+          white-space: nowrap;
+        }
+      }
+
+      @media (min-width: 701px) and (max-width: 860px) {
+        #overviewPage > section > div:first-child {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        #advancedBtn,
+        #exportBtn,
+        #addCustomerBtn {
+          width: 100%;
         }
       }
 
@@ -2176,6 +2404,28 @@
           flex: 0 0 auto;
         }
 
+        #customerDetailPage [data-detail-tab] {
+          flex: 0 0 auto;
+          min-width: max-content;
+          max-width: none;
+          overflow: visible;
+          scroll-snap-align: start;
+          white-space: nowrap;
+        }
+
+        #customerDetailPage > section:nth-of-type(2) > div:first-child > div > div:first-child {
+          display: flex;
+          width: 100%;
+          max-width: 100%;
+          overflow-x: auto;
+          scroll-snap-type: x proximity;
+          scrollbar-width: none;
+        }
+
+        #customerDetailPage > section:nth-of-type(2) > div:first-child > div > div:first-child::-webkit-scrollbar {
+          display: none;
+        }
+
         #customerDetailPage > section:nth-of-type(2) > div:first-child > div,
         #orderDetailTabs {
           display: flex;
@@ -2191,6 +2441,15 @@
 
         .order-scroll-shell {
           position: relative;
+        }
+
+        .create-fit-tools-main section > div.p-4 {
+          overflow-x: auto;
+        }
+
+        .create-fit-tool-grid-header,
+        .create-fit-tool-pair {
+          min-width: 520px;
         }
 
         #overviewPage > section,
@@ -2217,13 +2476,191 @@
           padding: 14px 16px;
         }
 
+        #overviewPage > section > div:first-child,
+        #overviewPage > section > div:nth-child(2) {
+          padding: 14px;
+        }
+
+        #overviewPage > section > div:first-child {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          align-items: center;
+          gap: 10px;
+        }
+
+        #overviewPage > section > div:first-child > div {
+          display: contents;
+        }
+
+        #overviewPage > section > div:first-child label {
+          grid-column: 1 / -1;
+        }
+
+        #addCustomerBtn {
+          grid-column: 1 / -1;
+        }
+
+        #advancedBtn,
+        #exportBtn,
+        #addCustomerBtn {
+          min-width: 0;
+          height: auto;
+          min-height: 40px;
+          padding-left: 8px;
+          padding-right: 8px;
+          white-space: normal;
+        }
+
+        #customerSearch,
+        #advancedBtn,
+        #exportBtn,
+        #addCustomerBtn {
+          width: 100%;
+        }
+
+        #overviewPage > section > div:nth-child(2) {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 12px;
+        }
+
+        #resultSummary {
+          width: 100%;
+        }
+
+        #ordersViewControls {
+          align-items: center;
+          flex-direction: row;
+          flex-wrap: wrap;
+          justify-content: flex-start;
+          margin-left: 0;
+          width: 100%;
+        }
+
+        #ordersViewControls > span {
+          display: inline-flex;
+        }
+
+        #companyInfoViewBtn {
+          min-width: 0;
+          white-space: normal;
+        }
+
+        .customer-mobile-card {
+          padding: 16px 14px;
+        }
+
+        .customer-mobile-card-actions {
+          grid-template-columns: 1fr;
+        }
+
         #customerPagination,
         #ordersPagination,
         #fabricPagination {
-          justify-content: flex-start;
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: max-content;
+          justify-content: center;
           overflow-x: auto;
           padding-bottom: 2px;
           scrollbar-width: none;
+        }
+
+        #overviewPage footer,
+        #ordersPage footer,
+        #fabricInventoryPage footer {
+          flex-direction: column;
+        }
+
+        #customerPagination .page-link {
+          width: 38px;
+          padding: 0;
+          font-size: 0;
+        }
+
+        #customerPagination .page-link .icon {
+          height: 16px;
+          width: 16px;
+        }
+
+        #customerTable .customer-action-btn {
+          width: 40px;
+          padding: 0;
+          font-size: 0;
+        }
+
+        #customerTable .customer-action-btn .icon {
+          height: 16px;
+          width: 16px;
+        }
+
+        #customerTable .customer-action-col {
+          width: 56px !important;
+          min-width: 56px !important;
+          max-width: 56px !important;
+        }
+
+        body:not(.action-left-mode) #customerTable th:last-child,
+        body:not(.action-left-mode) #customerTable td:last-child,
+        body.action-left-mode #customerTable th:first-child,
+        body.action-left-mode #customerTable td:first-child,
+        body.action-left-mode #customerTable .sticky-action-cell,
+        #customerTable .sticky-action-cell {
+          width: 56px !important;
+          min-width: 56px !important;
+          max-width: 56px !important;
+        }
+
+        #customerTable .sticky-action-cell {
+          padding-left: 8px !important;
+          padding-right: 8px !important;
+        }
+
+        #customerTable thead .sticky-action-cell {
+          font-size: 0;
+        }
+
+        #advancedModal {
+          display: none;
+          max-height: calc(100dvh - 24px);
+          overflow: hidden;
+          flex-direction: column;
+        }
+
+        #advancedModal.open {
+          display: flex;
+        }
+
+        #advancedModal > div:first-child {
+          flex: 0 0 auto;
+        }
+
+        #advancedForm {
+          display: flex;
+          min-height: 0;
+          flex: 1 1 auto;
+          flex-direction: column;
+          padding-bottom: 0;
+        }
+
+        #advancedForm > .grid {
+          min-height: 0;
+          flex: 1 1 auto;
+          overflow-y: auto;
+          padding-bottom: 14px;
+          scrollbar-width: thin;
+        }
+
+        #advancedForm > .mt-5 {
+          margin-top: 0;
+          flex: 0 0 auto;
+          border-top: 1px solid hsl(var(--border));
+          background: hsl(var(--card));
+          padding: 12px 0 14px;
+        }
+
+        #advancedForm > .mt-5 .btn {
+          flex: 1 1 0;
         }
 
         #customerPagination::-webkit-scrollbar,
@@ -2232,30 +2669,78 @@
           display: none;
         }
 
-        #detailFilterMenu,
-        #fitProfileFilterMenu {
-          left: 0 !important;
-          right: auto !important;
-          width: min(360px, calc(100vw - 48px)) !important;
-          max-height: calc(100vh - 180px);
-          overflow-y: auto;
-        }
-
-        #fitProfileFilterSubmenu,
-        #detailFilterSubmenu {
-          position: static !important;
-          width: 100% !important;
-          max-height: 280px;
-          margin-top: 10px;
-          transform: none !important;
-          box-shadow: none;
-        }
-
+        .dropdown,
+        .filter-flyout,
+        .action-menu,
+        .order-action-menu,
+        .orders-action-menu,
+        .fit-profile-action-menu,
+        .sales-associate-action-menu,
         #ordersStatusMenu,
         #ordersSelectMenu,
-        #fabricSelectMenu {
-          max-width: calc(100vw - 32px) !important;
-          width: min(360px, calc(100vw - 32px)) !important;
+        #ordersBulkStatusMenu,
+        #fabricSelectMenu,
+        #createFitProfileSelectMenu,
+        #fitToolValueMenu,
+        #onePageOrderSelectMenu,
+        #pageSizeMenu,
+        #detailFilterMenu,
+        #detailFilterSubmenu,
+        #fitProfileFilterMenu,
+        #fitProfileFilterSubmenu,
+        #languageMenu,
+        #deliveryProductMenu,
+        #deliveryEmailFrequencyMenu,
+        #orderDetailActionsMenu,
+        #reportIssueAreaMenu {
+          position: fixed !important;
+          left: 12px !important;
+          right: 12px !important;
+          top: auto !important;
+          bottom: 12px !important;
+          width: auto !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          max-height: min(68dvh, 520px) !important;
+          overflow-y: auto !important;
+          border-radius: 16px !important;
+          border: 1px solid hsl(var(--border)) !important;
+          background: hsl(var(--card)) !important;
+          padding: 8px !important;
+          box-shadow: 0 24px 60px hsl(var(--foreground) / 0.22) !important;
+          transform: translateY(18px) scale(0.98) !important;
+          transform-origin: bottom center !important;
+          z-index: 3020 !important;
+        }
+
+        .dropdown.open,
+        .filter-flyout.open,
+        .action-menu.open,
+        .order-action-menu.open,
+        .orders-action-menu.open,
+        .fit-profile-action-menu.open,
+        .sales-associate-action-menu.open,
+        #pageSizeMenu:not(.hidden) {
+          transform: translateY(0) scale(1) !important;
+        }
+
+        .dropdown button,
+        .filter-flyout button,
+        .action-menu button,
+        .order-action-menu button,
+        .orders-action-menu button,
+        .fit-profile-action-menu button,
+        .sales-associate-action-menu button,
+        #pageSizeMenu button,
+        #languageMenu button,
+        #deliveryProductMenu button,
+        #deliveryEmailFrequencyMenu button,
+        #orderDetailActionsMenu button,
+        #reportIssueAreaMenu button {
+          min-height: 44px;
+          align-items: center;
+          border-radius: 10px;
+          font-size: 15px;
         }
 
         #ordersAdvancedModal,
@@ -2435,6 +2920,84 @@
         </div>
       </div>
     </header>
+    <header id="mobileNavigation" class="mobile-navigation sticky top-0 z-[1800] h-14 items-center justify-between border-b border-border bg-card px-4">
+      <div class="flex items-center gap-3">
+        <button id="mobileNavOpenBtn" class="flex h-9 w-9 items-center justify-center rounded-md hover:bg-secondary" type="button" aria-label="Open navigation">
+          <svg class="icon h-5 w-5" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+        <div class="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border bg-secondary text-sm text-muted-foreground">TM</div>
+        <div class="min-w-0">
+          <div class="truncate text-sm font-semibold">TaylorMade</div>
+          <div class="truncate text-xs text-muted-foreground">George Cauter</div>
+        </div>
+      </div>
+      <button class="account-settings-action flex h-9 w-9 items-center justify-center rounded-md hover:bg-secondary" type="button" aria-label="Account settings">
+        <svg class="icon h-5 w-5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 22a8 8 0 0 1 16 0"></path></svg>
+      </button>
+    </header>
+    <div id="mobileNavScrim" class="mobile-nav-scrim fixed inset-0 z-[1810] bg-black/20"></div>
+    <aside id="mobileNavDrawer" class="mobile-nav-drawer fixed inset-y-0 left-0 z-[1820] w-[min(340px,calc(100vw-32px))] flex-col border-r border-border bg-card shadow-xl">
+      <div class="flex h-14 items-center justify-between border-b border-border px-4">
+        <div class="font-semibold">Navigation</div>
+        <button id="mobileNavCloseBtn" class="flex h-9 w-9 items-center justify-center rounded-md hover:bg-secondary" type="button" aria-label="Close navigation">
+          <svg class="icon h-5 w-5" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <nav class="flex-1 overflow-y-auto p-4">
+        <div class="mobile-nav-page active space-y-5" data-mobile-nav-page="main">
+          <section class="space-y-1">
+            <button class="mobile-nav-link w-full" data-primary-nav="home">Dashboard</button>
+          </section>
+          <section class="space-y-1">
+            <div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Admin</div>
+            <button class="mobile-nav-link w-full" data-primary-nav="customers">Customers</button>
+            <button class="mobile-nav-link w-full" data-mobile-nav-target="orders">Orders <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+            <button class="mobile-nav-link w-full" data-mobile-nav-target="stock">Stock Inventory <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+          </section>
+          <section class="space-y-1">
+            <div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Tools</div>
+            <button class="mobile-nav-link w-full" data-mobile-nav-target="delivery">Delivery dates <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+            <button class="mobile-nav-link w-full" data-mobile-nav-target="downloads">Downloads <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+            <button class="mobile-nav-link w-full">Custom Size Creator</button>
+            <button class="mobile-nav-link w-full" data-mobile-nav-target="other">Other <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+          </section>
+          <section class="space-y-1">
+            <div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Helpful links</div>
+            <button class="mobile-nav-link w-full" data-mobile-nav-target="helpful">Helpful links <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+            <button class="mobile-nav-link w-full" data-primary-nav="shopSettings">Shop Settings</button>
+            <button class="mobile-nav-link w-full" data-mobile-nav-target="account">Account <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+          </section>
+        </div>
+        <div class="mobile-nav-page space-y-4" data-mobile-nav-page="orders">
+          <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Orders</div><button class="mobile-nav-link w-full" data-orders-page="CustomMade">CustomMade</button><button class="mobile-nav-link w-full" data-orders-page="ReadyMade">ReadyMade</button><button class="mobile-nav-link w-full" data-orders-page="ReadyMade drafts">ReadyMade Drafts</button></section>
+        </div>
+        <div class="mobile-nav-page space-y-4" data-mobile-nav-page="stock">
+          <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Fabrics</div><button class="mobile-nav-link w-full" data-stock-fabric="suits">Suits</button><button class="mobile-nav-link w-full" data-stock-fabric="suits">Shirts</button><button class="mobile-nav-link w-full" data-stock-fabric="suits">Overcoats</button><button class="mobile-nav-link w-full" data-stock-fabric="suits">Shoes</button><button class="mobile-nav-link w-full" data-stock-fabric="suits">Ties</button><button class="mobile-nav-link w-full" data-stock-fabric="suits">Pants</button><button class="mobile-nav-link w-full" data-stock-fabric="suits">Knitwear</button><button class="mobile-nav-link w-full" data-stock-fabric="suits">Vests</button><button class="mobile-nav-link w-full" data-stock-fabric="suits">Lining</button><button class="mobile-nav-link w-full" data-stock-fabric="suits">Labels</button></section>
+        </div>
+        <div class="mobile-nav-page space-y-4" data-mobile-nav-page="delivery">
+          <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Delivery dates</div><button class="mobile-nav-link w-full" data-delivery-page="calendar">Delivery Calendar</button><button class="mobile-nav-link w-full">Delivery Date Calculator</button></section>
+        </div>
+        <div class="mobile-nav-page space-y-4" data-mobile-nav-page="downloads">
+          <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Downloads</div><button class="mobile-nav-link w-full">Marketing tools</button><button class="mobile-nav-link w-full">Documents</button><button class="mobile-nav-link w-full">FitTool Videos</button><button class="mobile-nav-link w-full" data-downloads-page="order-form">Order Form</button><button class="mobile-nav-link w-full">App</button></section>
+        </div>
+        <div class="mobile-nav-page space-y-4" data-mobile-nav-page="other">
+          <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Other</div><button class="mobile-nav-link w-full" data-invoices-page>Invoices</button><button class="mobile-nav-link w-full">Shop Api</button><button class="mobile-nav-link w-full">R Price</button><button class="mobile-nav-link w-full">Styles</button><button class="mobile-nav-link w-full">Readymade FitProfile</button><button class="mobile-nav-link w-full">Reports</button></section>
+        </div>
+        <div class="mobile-nav-page space-y-4" data-mobile-nav-page="helpful">
+          <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Helpful links</div><a class="mobile-nav-link w-full" href="https://i.gocreate.nu/" target="_blank" rel="noopener noreferrer">Inspiration site</a><a class="mobile-nav-link w-full" href="https://www.taylormadegolf.eu/home?lang=en_NL" target="_blank" rel="noopener noreferrer">Custom link</a></section>
+        </div>
+        <div class="mobile-nav-page space-y-4" data-mobile-nav-page="account">
+          <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Account</div><button class="mobile-nav-link account-settings-action w-full" type="button">Account settings</button><button class="mobile-nav-link change-theme-action w-full" type="button">Change theme</button><button class="mobile-nav-link report-issue-action w-full" type="button">Report an issue</button><button class="mobile-nav-link logout-action w-full text-red-600" type="button">Log out</button></section>
+        </div>
+      </nav>
+    </aside>
     <div id="appShell" class="shell grid min-h-screen grid-cols-[254px_1fr]">
       <aside class="sidebar sticky top-0 z-[1700] flex h-screen flex-col overflow-visible bg-[#f7f7f5] px-2">
         <div class="flex h-[72px] items-center gap-3 px-3">
@@ -3169,6 +3732,12 @@
                             Upload
                           </button>
                         </div>
+                        <div id="inspirationLogoPreviewWrap" class="mt-3 hidden rounded-[10px] border border-border bg-card p-4">
+                          <div class="mb-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">Preview</div>
+                          <div class="flex h-24 w-full items-center justify-center rounded-[8px] bg-secondary/40 p-3">
+                            <img id="inspirationLogoPreview" class="max-h-full max-w-full object-contain" alt="Uploaded inspiration logo preview" />
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -3188,6 +3757,10 @@
                             <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
                             Upload
                           </button>
+                        </div>
+                        <div id="inspirationHomepagePreviewWrap" class="hidden overflow-hidden rounded-[10px] border border-border bg-card">
+                          <div class="border-b border-border px-4 py-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">Preview</div>
+                          <img id="inspirationHomepagePreview" class="aspect-[16/9] w-full object-cover" alt="Uploaded inspiration homepage image preview" />
                         </div>
                         <div class="rounded-[10px] border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
                           JPG max 4000 x 4000 pixels. Recommended aspect ratio 1:1.
@@ -3245,8 +3818,14 @@
                       </table>
                     </div>
                     <footer class="flex items-center justify-between border-t border-border px-4 py-3 text-sm text-muted-foreground">
-                      <span>Total record(s) <span id="shopEmployeeCount">8</span></span>
-                      <span>Page size <span class="ml-2 inline-flex h-9 min-w-[72px] items-center justify-between rounded-lg border border-border bg-card px-3 text-foreground">10 <svg class="icon h-4 w-4 text-muted-foreground" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></span></span>
+                      <div class="flex items-center gap-2">
+                        <span>Showing</span>
+                        <span class="inline-flex h-9 min-w-[72px] items-center justify-between rounded-lg border border-border bg-card px-3 text-foreground">
+                          10
+                          <svg class="icon h-4 w-4 text-muted-foreground" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>
+                        </span>
+                        <span>Total record(s) <span id="shopEmployeeCount">8</span></span>
+                      </div>
                     </footer>
                   </div>
                 </section>
@@ -3511,6 +4090,10 @@
                   <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
                   Advanced search
                 </button>
+                <button id="resetCustomerFiltersBtn" class="btn btn-soft" type="button">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6"></path></svg>
+                  Reset
+                </button>
               </div>
               <div class="flex items-center gap-3">
                 <button id="exportBtn" class="btn btn-soft">
@@ -3543,6 +4126,7 @@
                 <tbody id="customerRows" class="divide-y divide-border"></tbody>
               </table>
             </div>
+            <div id="customerMobileCards" class="customer-mobile-cards"></div>
 
             <footer class="flex flex-col gap-4 border-t border-border px-6 py-4 md:flex-row md:items-center md:justify-between">
               <div class="flex items-center gap-2 text-sm text-muted-foreground">
@@ -3583,7 +4167,7 @@
                 </div>
               </div>
               <div class="flex items-center gap-3">
-                <button id="detailEditBtn" class="btn btn-soft">Edit account</button>
+                <button id="detailEditBtn" class="btn btn-soft">Edit Customer</button>
                 <button id="detailCreateOrderBtn" class="btn btn-primary">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>
                   Create order
@@ -3726,6 +4310,10 @@
                   <tbody id="detailOrderRows" class="divide-y divide-border"></tbody>
                 </table>
               </div>
+              <footer class="flex flex-col gap-4 border-t border-border px-6 py-4 md:flex-row md:items-center md:justify-between">
+                <div id="detailOrdersPaginationSummary" class="text-sm text-muted-foreground">Viewing 0 out of 0 orders</div>
+                <div id="detailOrdersPagination" class="flex items-center gap-2 text-sm"></div>
+              </footer>
             </div>
 
             <div id="detailFitProfilesPanel" class="hidden">
@@ -3798,6 +4386,10 @@
                   <tbody id="fitProfileRows" class="divide-y divide-border"></tbody>
                 </table>
               </div>
+              <footer class="flex flex-col gap-4 border-t border-border px-6 py-4 md:flex-row md:items-center md:justify-between">
+                <div id="fitProfilePaginationSummary" class="text-sm text-muted-foreground">Viewing 0 out of 0 FitProfiles</div>
+                <div id="fitProfilePagination" class="flex items-center gap-2 text-sm"></div>
+              </footer>
             </div>
 
             <div id="detailAccountPanel" class="hidden border-t border-border p-6"></div>
@@ -3835,6 +4427,10 @@
                   <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
                   Advanced search
                 </button>
+                <button id="resetOrdersFiltersBtn" class="btn btn-soft" type="button">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6"></path></svg>
+                  Reset
+                </button>
               </div>
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <button id="ordersExportBtn" class="btn btn-soft" type="button">
@@ -3848,7 +4444,7 @@
               </div>
             </div>
 
-            <div class="relative flex flex-col gap-3 border-b border-border px-6 py-5 lg:flex-row lg:items-end">
+            <div class="orders-filter-bar relative flex flex-col gap-3 border-b border-border px-6 py-5 lg:flex-row lg:items-end">
               <div class="relative w-full sm:w-[220px]">
                 <span class="mb-1.5 block pl-0.5 text-xs font-medium text-muted-foreground">Status</span>
                 <button id="ordersStatusBtn" class="field fabric-select flex" data-orders-status-trigger type="button">
@@ -3940,7 +4536,7 @@
 
         <div id="orderDetailPage" class="content-pad hidden space-y-6 p-6">
           <section class="space-y-6">
-            <section class="overflow-hidden rounded-[14px] border border-border bg-card shadow-panel">
+            <section id="orderDetailSummaryCard" class="overflow-visible rounded-[14px] border border-border bg-card shadow-panel">
               <div class="flex flex-col gap-4 p-6 md:flex-row md:items-start md:justify-between">
                 <div class="flex min-w-0 items-start gap-3">
                   <button id="backToOrdersBtn" class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-secondary" title="Back to orders" type="button">
@@ -4009,6 +4605,10 @@
                   <button id="scanFabricBtn" class="btn btn-soft">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M7 3H5a2 2 0 0 0-2 2v2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
                     Scan fabric
+                  </button>
+                  <button id="resetFabricTableFiltersBtn" class="btn btn-soft" type="button">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6"></path></svg>
+                    Reset
                   </button>
                 </div>
               </div>
@@ -4103,10 +4703,9 @@
             </div>
 
             <div class="overflow-x-auto">
-              <table id="fabricTable" class="w-full min-w-[1716px] table-fixed text-left text-sm">
+              <table id="fabricTable" class="w-full min-w-[1660px] table-fixed text-left text-sm">
                 <colgroup>
                   <col class="action-left-only w-[96px]" />
-                  <col class="w-14" />
                   <col class="w-[252px]" />
                   <col class="w-[136px]" />
                   <col class="w-[136px]" />
@@ -4123,7 +4722,6 @@
                 <thead class="bg-card text-muted-foreground">
                   <tr class="border-b border-border">
                     <th class="sticky-action-cell action-left-only px-4 py-5 text-center font-medium">Price</th>
-                    <th class="px-5 py-5"><input id="selectAllFabrics" type="checkbox" class="check" /></th>
                     <th class="px-4 py-5 font-medium">Fabric</th>
                     <th class="px-4 py-5 font-medium">Availability</th>
                     <th class="px-4 py-5 font-medium">Sold out since</th>
@@ -4299,9 +4897,28 @@
             </span>
             Keep informed?
           </label>
-          <button id="submitCustomerBtn" class="btn btn-primary">Create Customer</button>
+          <div class="flex items-center gap-2">
+            <button id="deleteCustomerBtn" class="btn btn-soft hidden text-red-600 hover:bg-red-50" type="button">Remove customer</button>
+            <button id="submitCustomerBtn" class="btn btn-primary">Create Customer</button>
+          </div>
         </div>
       </form>
+    </section>
+
+    <section id="deleteCustomerConfirmModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(460px,calc(100vw-32px))] rounded-[14px] border border-border bg-card shadow-xl">
+      <div class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+        <div>
+          <h2 class="text-base font-medium">Remove customer?</h2>
+          <p id="deleteCustomerConfirmMessage" class="mt-1 text-sm text-muted-foreground"></p>
+        </div>
+        <button id="closeDeleteCustomerConfirmBtn" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-secondary" title="Close" type="button">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="flex justify-end gap-3 px-5 py-4">
+        <button id="cancelDeleteCustomerConfirmBtn" class="btn btn-soft" type="button">Cancel</button>
+        <button id="confirmDeleteCustomerBtn" class="btn bg-red-600 text-white hover:bg-red-700" type="button">Remove customer</button>
+      </div>
     </section>
 
     <section id="salesAssociateModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(460px,calc(100vw-32px))] rounded-[14px] border border-border bg-card shadow-xl">
@@ -4683,6 +5300,10 @@
           <span class="text-sm text-muted-foreground">Unlock or lock the order type switch.</span>
         </div>
         <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/35 px-3 py-2">
+          <span class="font-mono text-sm font-semibold">SSS</span>
+          <span class="text-sm text-muted-foreground">Toggle search-first Orders table testing.</span>
+        </div>
+        <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/35 px-3 py-2">
           <span class="font-mono text-sm font-semibold">OOO</span>
           <span class="text-sm text-muted-foreground">Jump straight to the one-page order flow.</span>
         </div>
@@ -4748,8 +5369,8 @@
       </div>
     </section>
 
-    <section id="createOrderFlowModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(980px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-border bg-card shadow-xl">
-      <div class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+    <section id="createOrderFlowModal" class="modal fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-32px)] w-[min(980px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-border bg-card shadow-xl">
+      <div class="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-4">
         <div>
           <h2 class="text-base font-medium">Create order</h2>
           <p class="mt-1 text-sm text-muted-foreground">Choose an item to start the order flow.</p>
@@ -4758,19 +5379,19 @@
           <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg>
         </button>
       </div>
-      <div class="border-b border-border p-5">
+      <div class="shrink-0 border-b border-border p-5">
         <div class="flex h-10 items-center gap-3 rounded-[10px] border border-input bg-card px-3">
           <svg class="icon h-4 w-4 text-muted-foreground" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
           <input id="createOrderFlowSearchInput" class="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" placeholder="Search all order items" />
         </div>
       </div>
-      <div class="grid min-h-[560px] md:grid-cols-[280px_minmax(0,1fr)]">
-        <aside class="border-b border-border p-3 md:border-b-0 md:border-r">
+      <div class="grid min-h-0 flex-1 md:grid-cols-[280px_minmax(0,1fr)]">
+        <aside class="min-h-0 overflow-y-auto border-b border-border p-3 md:border-b-0 md:border-r">
           <nav id="createOrderFlowCategories" class="space-y-1"></nav>
         </aside>
-        <div class="flex min-h-[560px] flex-col">
+        <div class="flex min-h-0 flex-col">
           <div id="createOrderFlowItems" class="flex-1 overflow-y-auto p-5"></div>
-          <div class="flex justify-end gap-3 border-t border-border px-5 py-4">
+          <div class="flex shrink-0 justify-end gap-3 border-t border-border bg-card px-5 py-4">
             <button id="cancelCreateOrderFlowModalBtn" class="btn btn-soft" type="button">Cancel</button>
             <button id="beginCreateOrderFlowBtn" class="btn btn-primary" type="button">Continue</button>
           </div>
@@ -5033,6 +5654,16 @@
           <p class="mt-3 text-sm text-red-600">*without influences from designoption(s) and fabrics</p>
         </div>
       </div>
+      <div id="fitProfileHistorySection" class="hidden border-t border-border px-5 pb-5 pt-4">
+        <div class="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 class="font-medium">Measurement history</h3>
+            <p class="text-sm text-muted-foreground">Compare each saved value side by side across time.</p>
+          </div>
+          <span id="fitProfileHistoryCount" class="text-sm text-muted-foreground"></span>
+        </div>
+        <div id="fitProfileHistoryRows" class="max-h-[460px] overflow-hidden"></div>
+      </div>
     </section>
 
     <section id="fitProfileHelpModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(1120px,calc(100vw-32px))] rounded-[14px] border border-border bg-card shadow-xl">
@@ -5095,42 +5726,32 @@
       </div>
     </section>
 
-    <section id="orderFormStartModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(560px,calc(100vw-32px))] rounded-[14px] border border-border bg-card shadow-xl">
+    <section id="orderFormStartModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(980px,calc(100vw-32px))] overflow-hidden rounded-[14px] border border-border bg-card shadow-xl">
       <div class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
         <div>
           <h2 class="text-base font-medium">Create order form</h2>
-          <p class="mt-1 text-sm text-muted-foreground">Choose the item type to build.</p>
+          <p class="mt-1 text-sm text-muted-foreground">Choose an item to build the printable form.</p>
         </div>
         <button id="closeOrderFormStartBtn" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-secondary" title="Close">
           <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg>
         </button>
       </div>
-      <div class="space-y-5 p-5">
-        <label class="block space-y-2">
-          <span class="text-sm font-medium text-muted-foreground">Make</span>
-          <input id="orderFormStartItem" type="hidden" value="Outerwear" />
-          <div class="relative">
-            <button id="orderFormStartItemBtn" class="field fabric-select flex" type="button" aria-expanded="false">
-              <span id="orderFormStartItemLabel" class="fabric-select-label">Outerwear</span>
-              <svg class="icon h-4 w-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>
-            </button>
-            <div id="orderFormStartItemMenu" class="absolute left-0 right-0 top-[calc(100%+6px)] z-[70] hidden max-h-[260px] overflow-y-auto rounded-[12px] border border-border bg-card p-1 shadow-xl">
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="Formal suits & Jacket" type="button"><span>Formal suits &amp; Jacket</span><svg class="icon hidden h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="Informal suits & Jacket" type="button"><span>Informal suits &amp; Jacket</span><svg class="icon hidden h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="Trousers" type="button"><span>Trousers</span><svg class="icon hidden h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="Vests" type="button"><span>Vests</span><svg class="icon hidden h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="Shirts" type="button"><span>Shirts</span><svg class="icon hidden h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="Knitwear" type="button"><span>Knitwear</span><svg class="icon hidden h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="Pants" type="button"><span>Pants</span><svg class="icon hidden h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] bg-secondary px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="Outerwear" type="button"><span>Outerwear</span><svg class="icon h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="Shoes & Belts" type="button"><span>Shoes &amp; Belts</span><svg class="icon hidden h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-              <button class="package-menu-action flex w-full items-center justify-between rounded-[8px] px-3 py-2 text-left text-sm hover:bg-secondary" data-order-form-start-option="(Bow)Ties, Pocket Squares & Cummerbunds" type="button"><span>(Bow)Ties, Pocket Squares &amp; Cummerbunds</span><svg class="icon hidden h-4 w-4 text-primary" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"></path></svg></button>
-            </div>
+      <div class="border-b border-border p-5">
+        <div class="flex h-10 items-center gap-3 rounded-[10px] border border-input bg-card px-3">
+          <svg class="icon h-4 w-4 text-muted-foreground" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          <input id="orderFormStartSearchInput" class="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" placeholder="Search all form items" />
+        </div>
+      </div>
+      <div class="grid min-h-[560px] md:grid-cols-[280px_minmax(0,1fr)]">
+        <aside class="border-b border-border p-3 md:border-b-0 md:border-r">
+          <nav id="orderFormStartCategories" class="space-y-1"></nav>
+        </aside>
+        <div class="flex min-h-[560px] flex-col">
+          <div id="orderFormStartItems" class="flex-1 overflow-y-auto p-5"></div>
+          <div class="flex justify-end gap-3 border-t border-border px-5 py-4">
+            <button id="cancelOrderFormStartBtn" class="btn btn-soft" type="button">Cancel</button>
+            <button id="beginOrderFormBtn" class="btn btn-primary" type="button">Continue</button>
           </div>
-        </label>
-        <div class="flex justify-end gap-3">
-          <button id="cancelOrderFormStartBtn" class="btn btn-soft" type="button">Cancel</button>
-          <button id="beginOrderFormBtn" class="btn btn-primary" type="button">Continue</button>
         </div>
       </div>
     </section>
@@ -5151,7 +5772,7 @@
           <button class="btn btn-soft h-9 min-h-9 px-3" data-order-form-design-modal-bulk="disable" type="button">Disable all</button>
         </div>
       </div>
-      <div id="orderFormDesignOptionsList" class="max-h-[520px] overflow-y-auto p-5"></div>
+      <div id="orderFormDesignOptionsList" class="grid max-h-[520px] gap-3 overflow-y-auto p-5"></div>
       <div class="flex justify-end gap-2 border-t border-border px-5 py-4">
         <button id="doneOrderFormDesignOptionsBtn" class="btn btn-primary" type="button">Done</button>
       </div>
@@ -5197,8 +5818,29 @@
       </div>
     </section>
 
+    <section id="fitProfileNameModal" class="modal fixed left-1/2 top-1/2 z-50 w-[min(460px,calc(100vw-32px))] rounded-[14px] border border-border bg-card shadow-xl">
+      <div class="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+        <div>
+          <h2 class="text-base font-medium">Edit FitProfile name</h2>
+        </div>
+        <button id="closeFitProfileNameModalBtn" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:bg-secondary" title="Close">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div class="space-y-2 p-5">
+        <label class="block space-y-2">
+          <span class="text-sm font-medium">FitProfile name</span>
+          <input id="fitProfileNameInput" class="field" placeholder="FitProfile name" />
+        </label>
+      </div>
+      <div class="flex justify-end gap-3 border-t border-border px-5 py-4">
+        <button id="cancelFitProfileNameModalBtn" class="btn btn-soft" type="button">Cancel</button>
+        <button id="saveFitProfileNameBtn" class="btn btn-primary" type="button">Save</button>
+      </div>
+    </section>
+
     <div id="toast" class="fixed bottom-5 left-1/2 z-[60] hidden -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-3 text-sm shadow-panel"></div>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=fitprofile-history-matrix"></script>
   </body>
 </html>
