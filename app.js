@@ -374,6 +374,9 @@ const state = {
   selectedOrderId: null,
   orderDetailTab: "info",
   orderDetailInfoVisible: localStorage.getItem("relocate-order-detail-info-visible") !== "false",
+  orderDetailPieceMode: "3-piece",
+  orderDetailActivePart: "jacket",
+  orderDetailCollapsedSections: new Set(),
   orderRemarks: JSON.parse(localStorage.getItem("relocate-order-remarks") || "{}"),
   ordersViews: {
     product: true,
@@ -385,6 +388,7 @@ const state = {
   ordersBulkStatus: "",
   statusUpdateContext: "orders",
   activeOrdersBulkStatusPosition: null,
+  activeOrdersPrintPosition: null,
   ordersSort: { key: "order", direction: "asc" },
   activeStandaloneOrderActionId: null,
   activeStandaloneOrderActionPosition: null,
@@ -436,6 +440,7 @@ const state = {
   activeFabricSelect: null,
   activeFabricSelectInstance: null,
   activeFabricSelectPosition: null,
+  activeFabricExportPosition: null,
   activeOrdersSelect: null,
   activeOrdersSelectInstance: null,
   activeOrdersSelectPosition: null,
@@ -1193,19 +1198,19 @@ const ordersColumnDefinitions = {
   legend: { label: "Legend", width: 90, render: (order) => orderLegendMarkup(order.legend) },
   order: { label: "Order", width: 180, render: orderNumberMarkup },
   readyMadeOrder: { label: "ReadyMade order", width: 170, render: (order) => `<span class="font-medium">${escapeHtml(order.readyMadeOrder)}</span>` },
-  salesAssociate: { label: "Sales associate", width: 150, render: (order) => `<span class="block truncate font-medium">${order.salesAssociate}</span>` },
+  salesAssociate: { label: "Sales associate", width: 150, render: (order) => `<span class="block truncate text-muted-foreground">${order.salesAssociate}</span>` },
   customer: { label: "Customer", width: 190, render: orderCustomerMarkup },
   status: { label: "Status", width: 140, render: (order) => orderStatusMarkup(order.status) },
   qualityIssueStatus: { label: "Quality Issue Status", width: 140, render: (order) => `<span class="text-muted-foreground">${order.qualityIssueStatus}</span>` },
   daysInStatus: { label: "Days in status", width: 110, render: (order) => `<span class="text-muted-foreground">${order.daysInStatus}</span>` },
   item: { label: "Item", width: 110, render: (order) => `<span class="text-muted-foreground">${order.item}</span>` },
-  subProductPart: { label: "Sub Product/Part", width: 160, view: "product", render: (order) => `<span class="text-muted-foreground">${order.subProductPart}</span>` },
+  subProductPart: { label: "Sub Product/Part", width: 260, view: "product", render: (order) => `<span class="whitespace-nowrap text-muted-foreground">${order.subProductPart}</span>` },
   fabric: { label: "Fabric", width: 260, view: "product", render: (order) => `<span class="block truncate text-muted-foreground">${order.fabric}</span>` },
   processedDate: { label: "Processed date", width: 170, view: "dates", render: (order) => `<span class="text-muted-foreground">${order.processedDate}</span>` },
   expectedDeliveryDate: { label: "Expected delivery date", width: 180, view: "dates", render: (order) => `<span class="text-muted-foreground">${order.expectedDeliveryDate}</span>` },
   updatedDeliveryDate: { label: "Updated delivery date", width: 180, view: "dates", render: (order) => `<span class="text-muted-foreground">${order.updatedDeliveryDate}</span>` },
   latestDeliveryDate: { label: "Latest delivery date", width: 180, view: "dates", render: (order) => `<span class="text-muted-foreground">${order.latestDeliveryDate}</span>` },
-  tryOn: { label: "TryOn", width: 140, view: "product", render: (order) => `<span class="text-muted-foreground">${order.tryOn}</span>` },
+  tryOn: { label: "TryOn", width: 160, view: "product", render: (order) => `<span class="whitespace-nowrap text-muted-foreground">${order.tryOn}</span>` },
   price: { label: "R. Price (incl. discount)", width: 150, view: "pricing", render: (order) => `<span class="text-muted-foreground">${order.price}</span>` },
   createdDate: { label: "Order created date", width: 170, view: "dates", render: (order) => `<span class="text-muted-foreground">${order.createdDate}</span>` },
   onHoldDate: { label: "On-hold date", width: 140, view: "dates", render: (order) => `<span class="text-muted-foreground">${order.onHoldDate}</span>` },
@@ -1268,6 +1273,106 @@ const standaloneOrders = Array.from({ length: 50 }, (_, index) => {
     type,
   };
 });
+
+const reviewSuitOrders = [
+  {
+    order: "PLTSA.AMS.NL.0002001",
+    customerId: "CUS-001",
+    salesAssociate: "James Porter",
+    status: "In workshop",
+    item: "2-piece suit",
+    subProductPart: "Jacket + Trouser - Formal",
+    fabric: "JA00018 | navy wool hopsack",
+    tryOn: "Jacket Regular - 50 / Trouser Regular - 50",
+  },
+  {
+    order: "PLTSA.AMS.NL.0002002",
+    customerId: "CUS-002",
+    salesAssociate: "Sarah Johnson",
+    status: "Processed",
+    item: "3-piece suit",
+    subProductPart: "Jacket + Trouser + Waistcoat - Wedding",
+    fabric: "WA00025 | grey herringbone",
+    tryOn: "Jacket Slim - 48 / Trouser Slim - 48 / Waistcoat Slim - 48",
+  },
+  {
+    order: "PLTSA.AMS.NL.0002003",
+    customerId: "CUS-003",
+    salesAssociate: "David Kim",
+    status: "On hold",
+    item: "2-piece suit",
+    subProductPart: "Jacket + Trouser - Business",
+    fabric: "TR00044 | charcoal flannel",
+    tryOn: "Jacket Comfort - 52 / Trouser Comfort - 52",
+  },
+  {
+    order: "PLTSA.AMS.NL.0002004",
+    customerId: "CUS-004",
+    salesAssociate: "Emma Clarke",
+    status: "In workshop",
+    item: "3-piece suit",
+    subProductPart: "Jacket + Trouser + Waistcoat - Formal",
+    fabric: "9196 sky blue-ivory wool-cotton-silk-linen glencheck",
+    tryOn: "Jacket Regular - 50 / Trouser Regular - 50 / Waistcoat Regular - 50",
+  },
+  {
+    order: "PLTSA.AMS.NL.0002005",
+    customerId: "CUS-005",
+    salesAssociate: "Oliver Grant",
+    status: "Out for delivery",
+    item: "2-piece suit",
+    subProductPart: "Jacket + Trouser - Dinner",
+    fabric: "JA00031 | brown linen",
+    tryOn: "Jacket Slim 2.0 - 46 / Trouser Slim 2.0 - 46",
+  },
+  {
+    order: "PLTSA.AMS.NL.0002006",
+    customerId: "CUS-006",
+    salesAssociate: "Charlotte Evans",
+    status: "Received",
+    item: "3-piece suit",
+    subProductPart: "Jacket + Trouser + Waistcoat - Black tie",
+    fabric: "EF055 black stretch brushed wool twill",
+    tryOn: "Jacket Regular - 54 / Trouser Regular - 54 / Waistcoat Regular - 54",
+  },
+].map((entry, index) => {
+  const customer = customers.find((item) => item.id === entry.customerId) || customers[index % customers.length];
+  return {
+    id: `${entry.order}-review`,
+    legend: orderLegendTypes[(index + 1) % orderLegendTypes.length],
+    order: entry.order,
+    rmName: "",
+    readyMadeOrder: "",
+    salesAssociate: entry.salesAssociate,
+    customerId: customer.id,
+    customer: fullName(customer),
+    customerFirstName: customer.firstName,
+    customerLastName: customer.lastName,
+    companyId: `CMP-SUIT-${String(index + 1).padStart(2, "0")}`,
+    deliveryNumber: `DN-SUIT-${String(72000 + index)}`,
+    receiptId: `RCPT-SUIT-${String(910000 + index)}`,
+    status: entry.status,
+    qualityIssueStatus: index % 2 ? "-" : "Review",
+    daysInStatus: String(index + 1),
+    item: entry.item,
+    subProductPart: entry.subProductPart,
+    fabric: entry.fabric,
+    processedDate: `${String(14 + index).padStart(2, "0")}-Jun-2026 11:20`,
+    expectedDeliveryDate: "18-Jul-2026",
+    updatedDeliveryDate: index % 2 ? "18-Jul-2026" : "-",
+    latestDeliveryDate: "25-Jul-2026",
+    tryOn: entry.tryOn,
+    price: index % 2 ? "1,740.00" : "1,420.00",
+    createdDate: `${String(10 + index).padStart(2, "0")}-Jun-2026`,
+    onHoldDate: entry.status === "On hold" ? "15-Jun-2026" : "-",
+    serviceCharge: "0.00",
+    discount: "0.00",
+    selectedUrgentDeliveryDate: index === 1 ? "12-Jul-2026" : "-",
+    type: "CustomMade",
+  };
+});
+
+standaloneOrders.unshift(...reviewSuitOrders);
 
 const readyMadeDraftStatusOptions = ["New", "Ordered"];
 const readyMadeDraftItemOptions = ["Informal jacket", "Jeans / 5 Pockets"];
@@ -1894,6 +1999,11 @@ function fitProfileHistoryValue(current, previous, index) {
 }
 
 function fitProfileHistoryMatrix(groups, versions) {
+  const valueVersions = versions.map((entry, index) => ({
+    ...entry,
+    index,
+    label: index === 0 ? "Current value" : entry.version,
+  }));
   const rows = groups.flatMap((group) =>
     group.items.map(([label, current, previous]) => ({
       group: group.label,
@@ -1909,7 +2019,7 @@ function fitProfileHistoryMatrix(groups, versions) {
         <thead class="bg-secondary text-xs font-medium uppercase tracking-normal text-muted-foreground">
           <tr>
             <th class="sticky left-0 top-0 z-20 min-w-[240px] bg-secondary">Measurement</th>
-            ${versions.map((entry) => `<th class="sticky top-0 z-10 min-w-[150px] bg-secondary">${escapeHtml(entry.version)}<span class="mt-1 block normal-case text-muted-foreground">${escapeHtml(entry.date)}</span></th>`).join("")}
+            ${valueVersions.map((entry) => `<th class="sticky top-0 z-10 min-w-[160px] bg-secondary">${escapeHtml(entry.label)}<span class="mt-1 block normal-case text-muted-foreground">${escapeHtml(entry.date)}</span></th>`).join("")}
           </tr>
         </thead>
         <tbody>
@@ -1922,12 +2032,12 @@ function fitProfileHistoryMatrix(groups, versions) {
                     <span class="block font-medium text-foreground">${escapeHtml(row.label)}</span>
                     <span class="mt-1 block text-xs text-muted-foreground">${escapeHtml(row.group)}</span>
                   </td>
-                  ${versions
-                    .map((_, index) => {
-                      const value = fitProfileHistoryValue(row.current, row.previous, index);
-                      const changed = index > 0 && value !== currentValue;
+                  ${valueVersions
+                    .map((entry) => {
+                      const value = fitProfileHistoryValue(row.current, row.previous, entry.index);
+                      const changed = entry.index > 0 && value !== currentValue;
                       return `
-                        <td class="${index === 0 ? "font-semibold text-foreground" : changed ? "bg-amber-50/60 font-medium text-foreground" : "text-muted-foreground"}">
+                        <td class="${entry.index === 0 ? "font-semibold text-foreground" : changed ? "bg-amber-50/60 font-medium text-foreground" : "text-muted-foreground"}">
                           ${escapeHtml(value)}
                         </td>
                       `;
@@ -2860,6 +2970,9 @@ function icon(name, classes = "") {
     "check-square": '<rect x="5" y="5" width="14" height="14" rx="2"></rect><path d="m8.5 12 2.5 2.5L16 9"></path>',
     "minus-square": '<rect x="5" y="5" width="14" height="14" rx="2"></rect><path d="M9 12h6"></path>',
     "arrow-left": '<path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path>',
+    "arrow-up": '<path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path>',
+    "arrow-down": '<path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path>',
+    "arrow-up-down": '<path d="m21 16-4 4-4-4"></path><path d="M17 20V4"></path><path d="m3 8 4-4 4 4"></path><path d="M7 4v16"></path>',
     "chevron-left": '<path d="m15 18-6-6 6-6"></path>',
     "chevron-right": '<path d="m9 18 6-6-6-6"></path>',
     "chevron-down": '<path d="m6 9 6 6 6-6"></path>',
@@ -2967,8 +3080,33 @@ function renderOrdersStatusMenu() {
           </button>
         `,
       )
-      .join("")}
+    .join("")}
   `;
+}
+
+function renderOrdersPrintMenu() {
+  const menu = el("ordersPrintMenu");
+  if (!menu) return;
+  if (!state.activeOrdersPrintPosition) {
+    menu.classList.remove("open");
+    return;
+  }
+  const width = Math.min(Math.max(state.activeOrdersPrintPosition.width, 260), window.innerWidth - 32);
+  const left = Math.min(Math.max(state.activeOrdersPrintPosition.left, 16), window.innerWidth - width - 16);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${state.activeOrdersPrintPosition.top}px`;
+  menu.style.width = `${width}px`;
+  menu.innerHTML = ordersPrintOptions
+    .map(
+      (item) => `
+        <button class="popout-item justify-start" data-orders-print-option="${item.key}" type="button">
+          <span>${escapeHtml(item.label)}</span>
+        </button>
+      `,
+    )
+    .join("");
+  translatePage(menu);
+  menu.classList.add("open");
 }
 
 function ordersStatusLabel() {
@@ -3026,6 +3164,7 @@ function openOrdersSelect(field) {
   el("ordersBulkStatusMenu")?.classList.remove("open");
   state.activeOrdersStatusPosition = null;
   state.activeOrdersBulkStatusPosition = null;
+  state.activeOrdersPrintPosition = null;
   state.activeOrdersSelect = isOpen ? null : field.dataset.ordersSelect;
   state.activeOrdersSelectInstance = isOpen ? null : field.dataset.selectInstance;
   state.activeOrdersSelectPosition = isOpen ? null : { left: rect.left, top: rect.bottom + 6, width: rect.width };
@@ -3124,6 +3263,13 @@ function renderOrdersFavoriteFilters() {
   translatePage(container);
 }
 
+const ordersPrintOptions = [
+  { key: "print", label: "Print" },
+  { key: "printPPrice", label: "Print with P.Price" },
+  { key: "printCustomerReceipt", label: "Print customer receipt" },
+  { key: "printReceived", label: "Print received order" },
+];
+
 function standaloneOrderActionItems(order) {
   const readyMade = orderNavType(order.type) === "ReadyMade";
   const readyMadeDraft = orderNavType(order.type) === "ReadyMade drafts";
@@ -3148,9 +3294,7 @@ function standaloneOrderActionItems(order) {
     { key: "remark", label: "Add/Edit Remark", icon: "file" },
     { key: "copyCustomMade", label: "Copy to CustomMade", icon: "copy" },
     { key: "issue", label: "Report order issue", icon: "flag" },
-    { key: "print", label: "Print", icon: "printer" },
-    { key: "printPPrice", label: "Print with P.Price", icon: "printer" },
-    { key: "printReceived", label: "Print received order", icon: "printer" },
+    ...ordersPrintOptions,
     { key: "restock", label: "Mark as essential restock", icon: "refresh" },
   ];
 }
@@ -3228,8 +3372,8 @@ function deliveryDateWithTooltip(order) {
   return `
     <span class="date-tooltip-wrap text-muted-foreground">
       <span>${order.expectedDeliveryDate}</span>
-      <button class="date-tooltip-trigger" type="button" aria-label="Delivery date details">
-        <svg class="icon h-3 w-3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01M11 12h1v5h1"></path></svg>
+      <button class="date-tooltip-trigger fit-help-btn" type="button" aria-label="Delivery date details">
+        <svg class="icon h-3.5 w-3.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01M11 12h1v5h1"></path></svg>
       </button>
       <span class="date-tooltip">
         <span class="mb-1 block font-semibold text-foreground">Delivery dates</span>
@@ -3245,8 +3389,8 @@ function orderDetailDeliveryDateMarkup() {
   return `
     <span class="date-tooltip-wrap">
       <span>04-Jun-2026</span>
-      <button class="date-tooltip-trigger" type="button" aria-label="Delivery date details">
-        <svg class="icon h-3 w-3" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01M11 12h1v5h1"></path></svg>
+      <button class="date-tooltip-trigger fit-help-btn" type="button" aria-label="Delivery date details">
+        <svg class="icon h-3.5 w-3.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8h.01M11 12h1v5h1"></path></svg>
       </button>
       <span class="date-tooltip text-sm font-normal">
         <span class="mb-1 block font-semibold text-foreground">Delivery dates</span>
@@ -3306,11 +3450,11 @@ function nextSortState(current, key) {
 function sortButtonMarkup(table, key, label, currentSort, extraClass = "") {
   const active = currentSort?.key === key;
   const direction = active ? currentSort.direction : "";
-  const arrow = !active ? "↕" : direction === "asc" ? "↑" : "↓";
+  const sortIcon = active ? (direction === "asc" ? "arrow-up" : "arrow-down") : "arrow-up-down";
   return `
-    <button class="sort-header-btn flex w-full items-center gap-1.5 text-left font-medium ${extraClass}" data-sort-table="${table}" data-sort-key="${key}" type="button" aria-sort="${active ? (direction === "asc" ? "ascending" : "descending") : "none"}">
-      <span class="min-w-0 truncate">${label}</span>
-      <span class="sort-indicator ${active ? "active" : ""} text-xs text-muted-foreground" aria-hidden="true">${arrow}</span>
+    <button class="sort-header-btn flex w-full items-start gap-1.5 text-left font-medium leading-snug ${extraClass}" data-sort-table="${table}" data-sort-key="${key}" type="button" aria-sort="${active ? (direction === "asc" ? "ascending" : "descending") : "none"}">
+      <span class="min-w-0 whitespace-normal">${label}</span>
+      <span class="sort-indicator ${active ? "active" : ""} text-muted-foreground" aria-hidden="true">${icon(sortIcon, "h-3.5 w-3.5")}</span>
     </button>
   `;
 }
@@ -3368,10 +3512,10 @@ const orderDetailSections = {
     ["Back length", "77.00"],
   ],
   designEssentials: [
-    ["Canvassing", "standard"],
+    ["Canvassing", "light"],
     ["Closure & lapel", "double-breasted 4 buttons with peak lapel"],
     ["Lower gorge", "regular"],
-    ["Lapel width", "standard"],
+    ["Lapel width", "wide"],
     ["Lapel buttonhole type", "standard"],
     ["Shoulder type", "soft"],
     ["Chest pocket", "rounded welt"],
@@ -3380,16 +3524,28 @@ const orderDetailSections = {
     ["Ticket pocket", "none"],
     ["Pocket flap height", "standard (5 cm)"],
     ["Cuff finishing", "4 kissing buttons with open cuff"],
+    ["1st sleeve buttonhole type left", "standard"],
     ["Vent(s)", "2 side vents"],
     ["Lining style", "fully-lined"],
     ["Inside facing", "tongue facing"],
+    ["Sleeve lining", "same as body lining"],
     ["Pick stitching (AMF)", "standard, 2 mm from edge"],
     ["Tuxedo (lapel & jets)", "none"],
   ],
   designDetails: [
-    ["Button", "3. dark brown horn with flame"],
-    ["Sleeve buttonhole", "standard"],
-    ["Melton", "standard"],
+    ["DesignOption", "DesignOption"],
+    ["Button", "24. mustard green corozo"],
+    ["Under collar", "best match"],
+    ["Inside jets", "same as lining"],
+    ["Inside pick stitching (Columbia)", "best match with lining"],
+    ["Throat tab", "none"],
+    ["Elbow patches", "none"],
+    ["Hidden lining pocket", "none"],
+    ["Contrast pick stitching (AMF)", "best match"],
+    ["Contrast lapel buttonhole", "best match (with fabric)"],
+    ["Contrast front buttonholes", "best match"],
+    ["Contrast sleeve buttonholes", "best match"],
+    ["Contrast 1st buttonhole sleeve", "best match"],
   ],
   branding: [
     ["Label position", "5. Inside, bottom left"],
@@ -3411,6 +3567,85 @@ const orderDetailSections = {
     ["Tariffs surcharge P.Price", "1.05"],
     ["Total P.Price", "244.05"],
   ],
+};
+
+const orderDetailParts = [
+  { id: "jacket", label: "Jacket" },
+  { id: "trouser", label: "Trouser" },
+  { id: "waistcoat", label: "Waistcoat", pieceMode: "3-piece" },
+];
+
+const orderDetailPartSections = {
+  jacket: {
+    fitTools: orderDetailSections.fitTools,
+    designEssentials: orderDetailSections.designEssentials,
+    designDetails: orderDetailSections.designDetails,
+  },
+  trouser: {
+    fitTools: [
+      ["Waist bigger", "+1.00"],
+      ["Hip smaller", "-0.50"],
+      ["Seat bigger", "standard"],
+      ["Thigh bigger", "+0.50"],
+      ["Knee smaller", "standard"],
+      ["Bottom width smaller", "-0.50"],
+      ["Front rise lower", "standard"],
+      ["Back rise higher", "+0.50"],
+      ["Length longer", "+1.50"],
+    ],
+    designEssentials: [
+      ["Waistband", "belt loops"],
+      ["Tuxedo waistband", "same as fabric"],
+      ["Waistband detailing", "standard"],
+      ["Front style", "single pleat"],
+      ["Closure", "zip fly"],
+      ["Side pockets", "slanted"],
+      ["Cargo pockets", "none"],
+      ["Back pocket(s)", "jet with button"],
+      ["Hem finish", "plain"],
+      ["Pocket lining", "TPC001 black"],
+      ["Pick stitching (AMF)", "none"],
+      ["Tuxedo (side stripe)", "none"],
+    ],
+    designDetails: [
+      ["DesignOption", "DesignOption"],
+      ["Coin pocket", "standard"],
+      ["Button", "24. mustard green corozo"],
+      ["Pleat direction", "inwards"],
+      ["Pleat depth", "standard"],
+      ["Pintuck", "no"],
+      ["Suspender buttons", "no"],
+      ["Buckle loop", "no"],
+      ["Crotch piece", "standard"],
+      ["Leg lining", "half-lined front"],
+      ["Contrast pick stitching (AMF)", "none"],
+      ["Contrast buttonholes", "best match"],
+    ],
+  },
+  waistcoat: {
+    fitTools: [
+      ["Take in 1/2 chest", "-0.50"],
+      ["Let out 1/2 waist", "+0.50"],
+      ["Shorten front length", "-1.00"],
+      ["Lengthen back length", "standard"],
+      ["Neck drop", "+0.50"],
+      ["Armhole", "standard"],
+    ],
+    designEssentials: [
+      ["Front style", "single-breasted 5 button"],
+      ["Lapel", "none"],
+      ["Bottom shape", "pointed"],
+      ["Pocket", "2 welt pockets"],
+      ["Back", "lining back with adjuster"],
+      ["Lining style", "fully-lined"],
+      ["Edge stitching", "standard"],
+    ],
+    designDetails: [
+      ["Button", "3. dark brown horn with flame"],
+      ["Back buckle", "silver"],
+      ["Inside label", "standard"],
+    ],
+  },
 };
 
 const orderDetailItems = [
@@ -3528,6 +3763,7 @@ function resetOrdersTransientState() {
   state.ordersBulkStatus = "";
   state.activeOrdersStatusPosition = null;
   state.activeOrdersBulkStatusPosition = null;
+  state.activeOrdersPrintPosition = null;
   state.activeOrdersSelect = null;
   state.activeOrdersSelectInstance = null;
   state.activeOrdersSelectPosition = null;
@@ -3882,6 +4118,7 @@ function renderOrdersPage() {
   setText(el("ordersResultText"), searchFirstWaiting ? "No results loaded" : chips.length || state.ordersSearchQuery ? "Showing results containing" : "Showing all result");
   syncOrdersStatusFields();
   renderOrdersStatusMenu();
+  renderOrdersPrintMenu();
   renderOrdersFavoriteFilters();
   syncOrdersExposedFilterFields();
   renderOrdersSelectMenu();
@@ -4141,6 +4378,23 @@ function detailCard(title, body, extraClass = "") {
   `;
 }
 
+function orderDetailCategoryCard(key, title, body, extraClass = "") {
+  const compactMode = !state.orderDetailInfoVisible;
+  const collapsed = compactMode && state.orderDetailCollapsedSections.has(key);
+  if (!compactMode) return detailCard(title, body, extraClass);
+  return `
+    <section class="overflow-hidden rounded-[14px] border border-border bg-card shadow-panel ${extraClass}">
+      <button class="flex w-full items-center gap-2 ${collapsed ? "rounded-[14px]" : "rounded-t-[14px]"} bg-secondary px-6 py-4 text-left" data-order-detail-category="${escapeAttr(key)}" type="button" aria-expanded="${!collapsed}">
+        <span class="flex h-4 w-4 items-center justify-center rounded border border-border bg-card text-[10px] text-muted-foreground">${collapsed ? "+" : "−"}</span>
+        <span class="text-lg font-semibold">${title}</span>
+      </button>
+      <div class="${collapsed ? "hidden" : ""} p-6">
+        ${body}
+      </div>
+    </section>
+  `;
+}
+
 function customerAccountValue(value) {
   if (value === true) return "Yes";
   if (value === false) return "No";
@@ -4323,10 +4577,79 @@ function renderOrderDetailListTab(title, rows, note = "") {
   );
 }
 
-function renderOrderDetailDesignTab() {
+function orderDetailVisibleParts() {
+  return orderDetailParts.filter((part) => !part.pieceMode || part.pieceMode === state.orderDetailPieceMode);
+}
+
+function ensureOrderDetailActivePart() {
+  const visibleParts = orderDetailVisibleParts();
+  if (!visibleParts.some((part) => part.id === state.orderDetailActivePart)) {
+    state.orderDetailActivePart = visibleParts[0]?.id || "jacket";
+  }
+  return state.orderDetailActivePart;
+}
+
+function renderOrderDetailPieceControls() {
+  const activePart = ensureOrderDetailActivePart();
+  const visibleParts = orderDetailVisibleParts();
   return `
-    ${detailCard("Essentials", `<div class="grid gap-6 lg:grid-cols-2"><div>${detailRows(orderDetailSections.designEssentials.slice(0, 9))}</div><div>${detailRows(orderDetailSections.designEssentials.slice(9))}</div></div>`)}
-    ${detailCard("Details", `<div class="max-w-3xl">${detailRows(orderDetailSections.designDetails)}</div>`, "mt-6")}
+    <div id="orderDetailPartNavRail" class="order-detail-part-nav-rail lg:w-[180px] lg:shrink-0">
+      <nav id="orderDetailPartNav" class="flex gap-2 overflow-x-auto rounded-lg bg-secondary p-1 lg:w-[180px] lg:shrink-0 lg:flex-col lg:overflow-visible" aria-label="Order parts">
+        ${visibleParts
+          .map(
+            (part) => `
+              <button class="customer-tab justify-start ${activePart === part.id ? "active" : ""}" data-order-detail-part="${part.id}" type="button">${part.label}</button>
+            `,
+          )
+          .join("")}
+      </nav>
+    </div>
+  `;
+}
+
+function renderOrderDetailPartListTab(titleSuffix, sectionKey, note = "") {
+  ensureOrderDetailActivePart();
+  const visibleParts = orderDetailVisibleParts();
+  return `
+    <div class="order-detail-part-layout grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+      ${renderOrderDetailPieceControls()}
+      <div class="space-y-6">
+        ${visibleParts
+          .map((part) => {
+            const rows = orderDetailPartSections[part.id]?.[sectionKey] || [];
+            return `
+              <section id="order-detail-part-${part.id}" data-order-detail-part-section="${part.id}">
+                ${renderOrderDetailListTab(`${part.label} ${titleSuffix}`, rows, note)}
+              </section>
+            `;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderOrderDetailDesignTab() {
+  ensureOrderDetailActivePart();
+  const visibleParts = orderDetailVisibleParts();
+  return `
+    <div class="order-detail-part-layout grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+      ${renderOrderDetailPieceControls()}
+      <div class="space-y-6">
+        ${visibleParts
+          .map((part) => {
+            const sections = orderDetailPartSections[part.id] || orderDetailPartSections.jacket;
+            const split = Math.ceil(sections.designEssentials.length / 2);
+            return `
+              <section id="order-detail-part-${part.id}" class="space-y-6" data-order-detail-part-section="${part.id}">
+                ${orderDetailCategoryCard(`${part.id}:designEssentials`, `${part.label} Essentials`, `<div class="grid gap-6 lg:grid-cols-2"><div>${detailRows(sections.designEssentials.slice(0, split))}</div><div>${detailRows(sections.designEssentials.slice(split))}</div></div>`)}
+                ${orderDetailCategoryCard(`${part.id}:designDetails`, `${part.label} Details`, `<div class="max-w-3xl">${detailRows(sections.designDetails)}</div>`)}
+              </section>
+            `;
+          })
+          .join("")}
+      </div>
+    </div>
   `;
 }
 
@@ -4371,7 +4694,7 @@ function renderOrderDetailTab() {
   });
   const content = {
     info: renderOrderDetailInfo,
-    fitTools: () => renderOrderDetailListTab("Jacket Fit tools", orderDetailSections.fitTools),
+    fitTools: () => renderOrderDetailPartListTab("FitTools", "fitTools"),
     measurements: () => renderOrderDetailListTab("Jacket Measurements", orderDetailSections.measurements, "*including influences from design option(s) and fabrics"),
     design: renderOrderDetailDesignTab,
     branding: () => detailCard("Branding", `<div class="max-w-3xl">${detailRows(orderDetailSections.branding)}</div>`),
@@ -4380,6 +4703,64 @@ function renderOrderDetailTab() {
   };
   el("orderDetailContent").innerHTML = (content[tab] || content.info)();
   translatePage(el("orderDetailPage"));
+  requestAnimationFrame(() => {
+    syncOrderDetailPartNav();
+    updateOrderDetailPartNavStickiness();
+  });
+}
+
+function syncOrderDetailPartNav() {
+  if (state.currentPage !== "orderDetail" || !["fitTools", "design"].includes(state.orderDetailTab)) return;
+  const sections = Array.from(document.querySelectorAll("[data-order-detail-part-section]"));
+  if (!sections.length) return;
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
+  const activationLine = viewportHeight - 200;
+  const activeSection =
+    sections
+      .slice()
+      .reverse()
+      .find((section) => section.getBoundingClientRect().top <= activationLine) || sections[0];
+  const activePart = activeSection.dataset.orderDetailPartSection;
+  if (activePart) state.orderDetailActivePart = activePart;
+  document.querySelectorAll("[data-order-detail-part]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.orderDetailPart === activePart);
+  });
+}
+
+function resetOrderDetailPartNavStickiness(nav) {
+  nav.classList.remove("is-fixed", "is-anchored");
+  nav.style.removeProperty("top");
+  nav.style.removeProperty("left");
+  nav.style.removeProperty("width");
+}
+
+function updateOrderDetailPartNavStickiness() {
+  const layout = document.querySelector(".order-detail-part-layout");
+  const rail = el("orderDetailPartNavRail");
+  const nav = el("orderDetailPartNav");
+  if (!layout || !rail || !nav || state.currentPage !== "orderDetail" || !["fitTools", "design"].includes(state.orderDetailTab)) return;
+
+  resetOrderDetailPartNavStickiness(nav);
+  if (window.innerWidth < 1024) return;
+
+  const stickyTop = document.documentElement.dataset.nav === "top" ? 72 : 24;
+  const layoutRect = layout.getBoundingClientRect();
+  const railRect = rail.getBoundingClientRect();
+  const navHeight = nav.offsetHeight;
+  const stickyBottom = layoutRect.bottom - navHeight;
+
+  if (layoutRect.top >= stickyTop) return;
+
+  if (stickyBottom <= stickyTop) {
+    nav.classList.add("is-anchored");
+    nav.style.width = `${railRect.width}px`;
+    return;
+  }
+
+  nav.classList.add("is-fixed");
+  nav.style.top = `${stickyTop}px`;
+  nav.style.left = `${railRect.left}px`;
+  nav.style.width = `${railRect.width}px`;
 }
 
 function renderOrderDetail(orderId) {
@@ -4389,19 +4770,26 @@ function renderOrderDetail(orderId) {
   const draftMode = orderNavType(order.type) === "ReadyMade drafts";
   state.selectedOrderId = order.id;
   state.ordersType = orderNavType(order.type);
+  state.orderDetailPieceMode = /3-piece/i.test(order.item || "") || order.item === "Jacket" ? "3-piece" : "2-piece";
+  ensureOrderDetailActivePart();
   setText("orderDetailNumber", order.order || order.orderNumber || order.orderName || order.id);
   setText("orderDetailCustomer", draftMode ? order.orderName : readyMade ? order.readyMadeOrder : customer ? `${customer.lastName}, ${customer.firstName}` : order.customer);
   setText(
     "orderDetailSubtitle",
     draftMode ? `${order.item} · ReadyMade draft` : readyMade ? `${order.item} · ReadyMade order` : `${order.item === "Jacket" ? "3-Piece suit" : order.item} · Munro Tailoring - Samples Photography`,
   );
+  const headerStatus = el("orderDetailHeaderStatus");
+  if (headerStatus) {
+    headerStatus.innerHTML = orderStatusMarkup(order.status);
+    headerStatus.classList.toggle("hidden", state.orderDetailInfoVisible);
+  }
   const metrics = el("orderDetailMetrics");
   metrics.classList.toggle("hidden", !state.orderDetailInfoVisible);
   metrics.innerHTML = state.orderDetailInfoVisible
     ? [
         { label: "Status", value: `<span class="inline-flex origin-left scale-150">${orderStatusMarkup(order.status)}</span>` },
+        { label: "Processed date", value: order.processedDate || "-" },
         { label: "Delivery date", value: orderDetailDeliveryDateMarkup() },
-        { label: "Outstanding", value: "€1,740.00" },
         { label: "Urgent/wedding", value: order.legend === "Urgent" || order.legend === "Urgent/Wedding" ? "Yes" : "-" },
       ]
         .map(
@@ -4414,6 +4802,7 @@ function renderOrderDetail(orderId) {
         )
         .join("")
     : "";
+  applyOrderDetailCardLayout();
   renderOrderDetailTab();
   setPage("orderDetail");
 }
@@ -7859,6 +8248,16 @@ function applyDetailInfoVisibility() {
     const section = document.getElementById(id);
     if (section) section.classList.toggle("hidden", !state.orderDetailInfoVisible);
   });
+  if (state.orderDetailInfoVisible) state.orderDetailCollapsedSections.clear();
+  const orderHeaderStatus = el("orderDetailHeaderStatus");
+  if (orderHeaderStatus) orderHeaderStatus.classList.toggle("hidden", state.orderDetailInfoVisible || state.currentPage !== "orderDetail");
+  applyOrderDetailCardLayout();
+}
+
+function applyOrderDetailCardLayout() {
+  const page = el("orderDetailPage");
+  if (!page) return;
+  page.classList.toggle("order-detail-connected", !state.orderDetailInfoVisible);
 }
 
 function renderCustomerDetail(customerId) {
@@ -8281,7 +8680,7 @@ function saveCreateFitProfilePackage() {
   renderDetailTabs();
   renderFitProfiles();
   setPage("detail");
-  showToast("FitProfiles created.");
+  showAlert("FitProfiles created", `${visibleGarments.length} FitProfile${visibleGarments.length === 1 ? "" : "s"} added to the customer.`);
   return true;
 }
 
@@ -8321,7 +8720,7 @@ function createNewFromEditedFitProfile() {
   state.editingFitProfileId = id;
   setEditFitProfileSaveModal(false);
   renderCreateFitProfileWorkspace();
-  showToast(`${newName} created.`);
+  showAlert("FitProfile created", `${newName} has been added.`);
 }
 
 function saveCopiedFitProfile() {
@@ -8362,7 +8761,7 @@ function saveCopiedFitProfile() {
   renderDetailTabs();
   renderFitProfiles();
   setPage("detail");
-  showToast(`${newName} created.`);
+  showAlert("FitProfile created", `${newName} has been added.`);
   return true;
 }
 
@@ -9226,11 +9625,13 @@ function renderFitProfileModal(profileId) {
   el("fitToolsPanelRows").innerHTML = header + rows(fitToolAdjustments);
   el("desiredMeasurementsPanelRows").innerHTML = header + rows(desiredMeasurements);
   el("fitProfileHistorySection").classList.toggle("hidden", !state.fitProfileHistoryVisible);
-  setText("fitProfileHistoryCount", `${fitToolAdjustments.length + desiredMeasurements.length} measurements`);
+  el("fitProfileCurrentToolsPanel")?.classList.toggle("hidden", state.fitProfileHistoryVisible);
+  el("fitProfileCurrentPanels")?.classList.toggle("lg:grid-cols-2", !state.fitProfileHistoryVisible);
+  el("fitProfileCurrentPanels")?.classList.toggle("lg:grid-cols-1", state.fitProfileHistoryVisible);
+  setText("fitProfileHistoryCount", `${fitToolAdjustments.length} FitTools`);
   el("fitProfileHistoryRows").innerHTML = fitProfileHistoryMatrix(
     [
       { label: "FitTools", items: fitToolAdjustments },
-      { label: "Desired measurements", items: desiredMeasurements },
     ],
     historyVersions,
   );
@@ -9633,6 +10034,21 @@ function renderFabricPageSizeMenu() {
   });
 }
 
+function renderFabricExportMenu() {
+  const menu = el("fabricExportMenu");
+  if (!menu) return;
+  if (!state.activeFabricExportPosition) {
+    menu.classList.remove("open");
+    return;
+  }
+  const width = Math.min(Math.max(state.activeFabricExportPosition.width, 260), window.innerWidth - 32);
+  const left = Math.min(Math.max(state.activeFabricExportPosition.left, 16), window.innerWidth - width - 16);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${state.activeFabricExportPosition.top}px`;
+  menu.style.width = `${width}px`;
+  menu.classList.add("open");
+}
+
 function renderCustomerPagination(totalPages) {
   const container = el("customerPagination");
   if (!container) return;
@@ -9778,6 +10194,7 @@ function renderFabricInventory() {
   setText("fabricTotalCount", String(rows.length));
   renderFabricPagination(totalPages);
   renderFabricPageSizeMenu();
+  renderFabricExportMenu();
 
   translatePage(el("fabricInventoryPage"));
 }
@@ -9839,6 +10256,42 @@ function showToast(message) {
   toast.classList.remove("hidden");
   window.clearTimeout(showToast.timeout);
   showToast.timeout = window.setTimeout(() => toast.classList.add("hidden"), 2200);
+}
+
+function removeAlert(alert) {
+  if (!alert) return;
+  alert.style.opacity = "0";
+  alert.style.transform = "translateX(12px)";
+  window.setTimeout(() => alert.remove(), 180);
+}
+
+function showAlert(title, message = "", variant = "success") {
+  const stack = el("alertStack");
+  if (!stack) return showToast(title);
+  const alert = document.createElement("div");
+  alert.className = `app-alert ${variant}`;
+  alert.style.opacity = "0";
+  alert.style.transform = "translateX(12px)";
+  alert.style.transition = "opacity 180ms ease, transform 180ms ease";
+  alert.innerHTML = `
+    ${icon(variant === "success" ? "check" : "info", "shrink-0")}
+    <div class="min-w-0">
+      <div class="app-alert-title">${escapeHtml(translateRaw(title))}</div>
+      ${message ? `<div class="app-alert-message">${escapeHtml(translateRaw(message))}</div>` : ""}
+    </div>
+    <button class="app-alert-close" data-alert-close type="button" aria-label="Dismiss alert">${icon("x", "h-4 w-4")}</button>
+  `;
+  stack.prepend(alert);
+  requestAnimationFrame(() => {
+    alert.style.opacity = "1";
+    alert.style.transform = "translateX(0)";
+  });
+  const timeout = window.setTimeout(() => removeAlert(alert), 4200);
+  alert.querySelector("[data-alert-close]")?.addEventListener("click", () => {
+    window.clearTimeout(timeout);
+    removeAlert(alert);
+  });
+  return alert;
 }
 
 function anyModalOpen() {
@@ -11762,7 +12215,7 @@ function deleteCustomer(customerId) {
   renderDashboard();
   renderPrimaryNavigation();
   if (state.currentPage === "detail" || state.currentPage === "createFitProfile") setPage("overview");
-  showToast(`${fullName(removed)} deleted.`);
+  showAlert("Customer deleted", `${fullName(removed)} has been removed as a customer.`);
 }
 
 function collectAdvancedFilters() {
@@ -11897,6 +12350,14 @@ function wireEvents() {
     button.addEventListener("click", () => {
       closeNavPopouts();
       setPage("invoices");
+    });
+  });
+
+  document.querySelectorAll("[data-inspiration-site-page]").forEach((button) => {
+    button.addEventListener("click", () => {
+      closeNavPopouts();
+      state.shopSettingsSection = "inspirationArea";
+      setPage("shopSettings");
     });
   });
 
@@ -12669,8 +13130,11 @@ function wireEvents() {
     const actionButton = event.target.closest("[data-one-page-order-action]");
     if (actionButton) {
       event.stopPropagation();
+      if (actionButton.dataset.onePageOrderAction === "process") {
+        showAlert("Order created", "The order has been processed and added.");
+        return;
+      }
       const messages = {
-        process: "Order processing previewed.",
         hold: "Order hold previewed.",
         discount: "Discount preview opened.",
       };
@@ -12855,7 +13319,30 @@ function wireEvents() {
     renderOnePageOrderPage();
   });
   el("doneFabricPriceModalBtn").addEventListener("click", () => setFabricPriceModal(false));
-  el("fabricExportBtn").addEventListener("click", () => showToast("Export ready for fabric inventory."));
+  el("fabricExportBtn").addEventListener("click", (event) => {
+    event.stopPropagation();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const isOpen = Boolean(state.activeFabricExportPosition);
+    state.activeFabricSelect = null;
+    state.activeFabricSelectInstance = null;
+    state.activeFabricSelectPosition = null;
+    renderFabricSelectMenu();
+    state.activeFabricExportPosition = isOpen ? null : { left: rect.left, top: rect.bottom + 6, width: Math.max(rect.width, 260) };
+    renderFabricExportMenu();
+  });
+
+  el("fabricExportMenu")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const option = event.target.closest("[data-fabric-export-option]");
+    if (!option) return;
+    const labels = {
+      stock: "Export Fabric Stock",
+      clPriceCat: "Export fabric CL price cat list",
+    };
+    state.activeFabricExportPosition = null;
+    renderFabricExportMenu();
+    showToast(`${labels[option.dataset.fabricExportOption] || "Export"} ready.`);
+  });
 
   el("fabricDescriptionToggle").addEventListener("click", () => {
     state.fabricDescriptionVisible = !state.fabricDescriptionVisible;
@@ -13036,6 +13523,35 @@ function wireEvents() {
     showToast("Order filters reset.");
   });
 
+  el("ordersPrintBtn")?.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const isOpen = Boolean(state.activeOrdersPrintPosition);
+    state.activeOrdersStatusPosition = null;
+    state.activeOrdersBulkStatusPosition = null;
+    state.activeOrdersSelect = null;
+    state.activeOrdersSelectInstance = null;
+    state.activeOrdersSelectPosition = null;
+    renderOrdersStatusMenu();
+    renderOrdersSelectMenu();
+    el("ordersStatusMenu")?.classList.remove("open");
+    el("ordersBulkStatusMenu")?.classList.remove("open");
+    state.activeOrdersPrintPosition = isOpen ? null : { left: rect.left, top: rect.bottom + 6, width: Math.max(rect.width, 260) };
+    renderOrdersPrintMenu();
+  });
+
+  el("ordersPrintMenu")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const option = event.target.closest("[data-orders-print-option]");
+    if (!option) return;
+    const item = ordersPrintOptions.find((entry) => entry.key === option.dataset.ordersPrintOption);
+    state.activeOrdersPrintPosition = null;
+    renderOrdersPrintMenu();
+    showToast(`${item?.label || "Print"} selected.`);
+  });
+
   document.querySelectorAll("[data-orders-status-trigger]").forEach((button) => {
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
@@ -13050,7 +13566,9 @@ function wireEvents() {
       state.activeOrdersSelectInstance = null;
       state.activeOrdersSelectPosition = null;
       state.activeOrdersBulkStatusPosition = null;
+      state.activeOrdersPrintPosition = null;
       el("ordersBulkStatusMenu").classList.remove("open");
+      renderOrdersPrintMenu();
       renderOrdersSelectMenu();
       state.activeOrdersStatusPosition = menuOpen && samePosition ? null : { left: rect.left, top: rect.bottom + 6, width: rect.width };
       renderOrdersStatusMenu();
@@ -13432,6 +13950,12 @@ function wireEvents() {
         deleteReadyMadeDraftOrders([orderId]);
         return;
       }
+      if (ordersPrintOptions.some((item) => item.key === action)) {
+        const item = ordersPrintOptions.find((entry) => entry.key === action);
+        renderOrdersPage();
+        showToast(`${item?.label || "Print"} selected.`);
+        return;
+      }
       renderOrdersPage();
       showToast(`${menuAction.textContent.trim()} selected.`);
     }
@@ -13469,6 +13993,28 @@ function wireEvents() {
     renderOrderDetailTab();
   });
   el("orderDetailContent").addEventListener("click", (event) => {
+    const categoryButton = event.target.closest("[data-order-detail-category]");
+    if (categoryButton) {
+      const sectionKey = categoryButton.dataset.orderDetailCategory;
+      if (state.orderDetailCollapsedSections.has(sectionKey)) {
+        state.orderDetailCollapsedSections.delete(sectionKey);
+      } else {
+        state.orderDetailCollapsedSections.add(sectionKey);
+      }
+      renderOrderDetailTab();
+      return;
+    }
+
+    const partButton = event.target.closest("[data-order-detail-part]");
+    if (partButton) {
+      state.orderDetailActivePart = partButton.dataset.orderDetailPart;
+      document.querySelectorAll("[data-order-detail-part]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.orderDetailPart === state.orderDetailActivePart);
+      });
+      document.querySelector(`[data-order-detail-part-section="${partButton.dataset.orderDetailPart}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
     const fitProfileButton = event.target.closest("[data-order-fit-profile-id]");
     if (fitProfileButton) {
       renderFitProfileModal(fitProfileButton.dataset.orderFitProfileId);
@@ -14478,7 +15024,7 @@ function wireEvents() {
       if (menuAction.dataset.fitAction === "delete") {
         const index = fitProfiles.findIndex((item) => item.id === profile.id);
         if (index >= 0) fitProfiles.splice(index, 1);
-        showToast(`${profile.label} deleted.`);
+        showAlert("FitProfile deleted", `${profile.label} has been removed.`);
       }
       renderFitProfiles();
       return;
@@ -14804,6 +15350,10 @@ function wireEvents() {
       state.activeStandaloneOrderActionPosition = null;
       renderOrdersPage();
     }
+    if (!event.target.closest("#ordersPrintBtn") && !event.target.closest("#ordersPrintMenu") && state.activeOrdersPrintPosition) {
+      state.activeOrdersPrintPosition = null;
+      renderOrdersPrintMenu();
+    }
     if (!event.target.closest(".sales-associate-action-btn") && !event.target.closest(".sales-associate-action-menu") && state.activeSalesAssociateActionId) {
       state.activeSalesAssociateActionId = null;
       state.activeSalesAssociateActionPosition = null;
@@ -14874,6 +15424,10 @@ function wireEvents() {
     if (!event.target.closest("#fabricPageSizeBtn") && !event.target.closest("#fabricPageSizeMenu")) {
       state.fabricPageSizeOpen = false;
       renderFabricPageSizeMenu();
+    }
+    if (!event.target.closest("#fabricExportBtn") && !event.target.closest("#fabricExportMenu")) {
+      state.activeFabricExportPosition = null;
+      renderFabricExportMenu();
     }
     if (!event.target.closest("[data-orders-status-trigger]") && !event.target.closest("#ordersStatusMenu")) {
       state.activeOrdersStatusPosition = null;
@@ -15103,6 +15657,8 @@ function wireEvents() {
     if (state.accountSettingsSelect) renderAccountSettingsSelects();
     positionCreateFitProfileStartPackageMenu();
     updateCreateFitMeasurementsStickiness();
+    syncOrderDetailPartNav();
+    updateOrderDetailPartNavStickiness();
   };
   window.addEventListener("scroll", repositionOpenDropdowns, true);
   window.addEventListener("resize", repositionOpenDropdowns);
@@ -15132,7 +15688,7 @@ function wireEvents() {
       showToast("Customer updated.");
     } else {
       customers.unshift(payload);
-      showToast("Customer created.");
+      showAlert("Customer created", `${fullName(payload)} has been added.`);
     }
     setCustomerModal(false);
     renderRows();
@@ -15325,8 +15881,11 @@ document.addEventListener("click", (event) => {
 
   const orderActionButton = event.target.closest("[data-one-page-order-action]");
   if (orderActionButton) {
+    if (orderActionButton.dataset.onePageOrderAction === "process") {
+      showAlert("Order created", "The order has been processed and added.");
+      return;
+    }
     const messages = {
-      process: "Order processing previewed.",
       hold: "Order hold previewed.",
       discount: "Discount preview opened.",
     };
