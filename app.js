@@ -186,6 +186,17 @@ if (!localStorage.getItem(appDefaultMigrationKey)) {
   localStorage.setItem(appDefaultMigrationKey, "true");
 }
 
+const copyEditStorageKey = "relocate-copy-edit-overrides";
+
+function parseCopyEditOverrides() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(copyEditStorageKey) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 const state = {
   editingId: null,
   currentPage: "home",
@@ -195,6 +206,13 @@ const state = {
   activeMenuPosition: null,
   activeNavPopout: null,
   activeNavSubpopout: null,
+  copyEditMode: localStorage.getItem("relocate-copy-edit-mode") === "true",
+  copyEditOverrides: parseCopyEditOverrides(),
+  copyEditDraftOverrides: parseCopyEditOverrides(),
+  copyEditSessionStartedAt: new Date().toISOString(),
+  activeCopyEditId: null,
+  activeDatePickerInput: null,
+  activeDatePickerMonth: null,
   companyInfoVisible: false,
   theme: localStorage.getItem("relocate-theme") || "canvas",
   mode: localStorage.getItem("relocate-mode") || "light",
@@ -229,6 +247,7 @@ const state = {
   activeOrderFormDesignValueIndex: null,
   createOrderFlowCategory: "trousers",
   createOrderFlowSearch: "",
+  createOrderFlowSelectedItemId: "",
   onePageOrderItem: "knitwear",
   onePageOrderCollapsedSections: new Set(["fitTools", "payment", "orderDetails"]),
   onePageOrderSameBasicInfo: false,
@@ -311,6 +330,7 @@ const state = {
   denseModeEnabled: localStorage.getItem("relocate-density") === "dense",
   contentWidthMode: localStorage.getItem("relocate-content-width") || "max",
   gdprMaskEnabled: localStorage.getItem("relocate-gdpr-mask") === "true",
+  globalChromeHidden: localStorage.getItem("relocate-ggg-global-chrome-hidden") === "true",
   dashboardOverlayHidden: false,
   actionColumnSide: localStorage.getItem("relocate-action-column-side") || "right",
   accountMenuAdvanced: false,
@@ -1801,7 +1821,7 @@ const createOrderFlowCategories = [
 
 const createOrderFlowItems = {
   formal: [
-    { id: "formal-two-piece", label: "2-Piece Suit", flowItem: "two-piece", fieldKey: "item", fieldValue: "2-Piece Suit", tag: "Work in progress" },
+    { id: "formal-two-piece", label: "2-Piece Suit", flowItem: "two-piece", fieldKey: "item", fieldValue: "2-Piece Suit", tag: "Work in progress", disabled: true },
     ...[
       "2-Piece Suit + Extra Trousers",
       "3-Piece Suit",
@@ -1813,22 +1833,22 @@ const createOrderFlowItems = {
     ].map((label, index) => ({ id: `formal-disabled-${index}`, label, disabled: true })),
   ],
   informal: [
-    "Informal Jacket",
-    "Informal Jacket + Trouser",
-    "Trousers",
-  ].map((label, index) => ({ id: `informal-${index}`, label, disabled: true })),
+    { id: "informal-jacket", label: "Informal Jacket", disabled: true },
+    { id: "legacy-informal-jacket-trouser", label: "Informal Jacket + Trouser", legacyReadyMade: true },
+    { id: "informal-trousers", label: "Trousers", disabled: true },
+  ],
   trousers: [
-    { id: "trousers-standard", label: "Trousers", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Trousers" },
-    { id: "trousers-chino", label: "Chino", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Chino" },
-    { id: "trousers-jeans", label: "Jeans/5 Pockets", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Jeans/5 Pockets" },
-    { id: "trousers-bermudas", label: "Bermudas", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Bermudas" },
+    { id: "trousers-standard", label: "Trousers", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Trousers", disabled: true },
+    { id: "trousers-chino", label: "Chino", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Chino", disabled: true },
+    { id: "trousers-jeans", label: "Jeans/5 Pockets", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Jeans/5 Pockets", disabled: true },
+    { id: "trousers-bermudas", label: "Bermudas", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Bermudas", disabled: true },
   ],
   knitwear: [
-    { id: "knitwear-knit", label: "Knit", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Knit", note: "Skip the TryOn - Convert from a Jacket FitProfile" },
-    { id: "knitwear-leisure-pants", label: "Leisure Pants", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Pants" },
-    { id: "knitwear-leisure-shorts", label: "Leisure Shorts", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Shorts" },
-    { id: "knitwear-scarf", label: "Scarf", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Scarf" },
-    { id: "knitwear-beanie", label: "Beanie", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Beanie" },
+    { id: "knitwear-knit", label: "Knit", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Knit", note: "Skip the TryOn - Convert from a Jacket FitProfile", disabled: true },
+    { id: "knitwear-leisure-pants", label: "Leisure Pants", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Pants", disabled: true },
+    { id: "knitwear-leisure-shorts", label: "Leisure Shorts", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Shorts", disabled: true },
+    { id: "knitwear-scarf", label: "Scarf", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Scarf", disabled: true },
+    { id: "knitwear-beanie", label: "Beanie", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Beanie", disabled: true },
   ],
 };
 
@@ -2957,6 +2977,7 @@ function icon(name, classes = "") {
     dots: '<path d="M12 8h.01M12 12h.01M12 16h.01"></path>',
     search: '<circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>',
     copy: '<rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>',
+    calendar: '<path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect>',
     file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path>',
     edit: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>',
     trash: '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m6 6 1 14h10l1-14"></path><path d="M10 11v5M14 11v5"></path>',
@@ -3144,7 +3165,165 @@ function syncOrdersDateFilterField(key, value) {
   state.ordersDateFilters[key] = value || "";
   document.querySelectorAll(`[data-orders-date-filter="${key}"]`).forEach((field) => {
     field.value = value || "";
+    syncDateDisplayFor(field);
   });
+}
+
+function formatIsoDateForDisplay(value) {
+  if (!value) return "";
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return value;
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+function parseDisplayDate(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  const displayMatch = trimmed.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (displayMatch) return `${displayMatch[3]}-${displayMatch[2]}-${displayMatch[1]}`;
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) return trimmed;
+  return null;
+}
+
+function dateDisplayInputFor(nativeInput) {
+  const field = nativeInput?.closest("[data-date-field]");
+  if (!field) return null;
+  return field.querySelector("[data-date-display], [data-date-display-for]");
+}
+
+function nativeDateInputFor(node) {
+  const field = node?.closest("[data-date-field]");
+  if (!field) return null;
+  const targetId = node.dataset.datePickerTrigger || node.dataset.dateDisplayFor;
+  if (targetId) return el(targetId);
+  return field.querySelector("[data-date-native]");
+}
+
+function syncDateDisplayFor(nativeInput) {
+  const display = dateDisplayInputFor(nativeInput);
+  if (display) display.value = formatIsoDateForDisplay(nativeInput?.value || "");
+}
+
+function syncAllDateDisplays(root = document) {
+  root.querySelectorAll("[data-date-native]").forEach((input) => syncDateDisplayFor(input));
+}
+
+function dateFromIso(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+function isoFromDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function datePickerMenu() {
+  let menu = el("datePickerMenu");
+  if (menu) return menu;
+  menu = document.createElement("div");
+  menu.id = "datePickerMenu";
+  menu.className = "date-picker-popout hidden";
+  document.body.appendChild(menu);
+  return menu;
+}
+
+function closeDatePicker() {
+  state.activeDatePickerInput = null;
+  state.activeDatePickerMonth = null;
+  datePickerMenu().classList.add("hidden");
+}
+
+function setDatePickerMonth(offset) {
+  const current = state.activeDatePickerMonth || new Date();
+  state.activeDatePickerMonth = new Date(current.getFullYear(), current.getMonth() + offset, 1);
+  renderDatePickerMenu();
+}
+
+function selectDatePickerDay(value) {
+  const input = state.activeDatePickerInput;
+  if (!input) return;
+  input.value = value;
+  syncDateDisplayFor(input);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  closeDatePicker();
+}
+
+function renderDatePickerMenu() {
+  const input = state.activeDatePickerInput;
+  const menu = datePickerMenu();
+  if (!input || !document.body.contains(input)) {
+    closeDatePicker();
+    return;
+  }
+
+  const field = input.closest("[data-date-field]");
+  const selected = dateFromIso(input.value);
+  const today = new Date();
+  const view = state.activeDatePickerMonth || new Date((selected || today).getFullYear(), (selected || today).getMonth(), 1);
+  state.activeDatePickerMonth = new Date(view.getFullYear(), view.getMonth(), 1);
+  const monthLabel = view.toLocaleString("en-GB", { month: "long", year: "numeric" });
+  const firstDay = new Date(view.getFullYear(), view.getMonth(), 1);
+  const mondayOffset = (firstDay.getDay() + 6) % 7;
+  const gridStart = new Date(view.getFullYear(), view.getMonth(), 1 - mondayOffset);
+  const selectedIso = selected ? isoFromDate(selected) : "";
+  const todayIso = isoFromDate(today);
+  const weekdays = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
+    const iso = isoFromDate(day);
+    const classes = [
+      "date-picker-day",
+      day.getMonth() !== view.getMonth() ? "outside" : "",
+      iso === selectedIso ? "selected" : "",
+      iso === todayIso ? "today" : "",
+    ].filter(Boolean).join(" ");
+    return `<button class="${classes}" data-date-picker-day="${iso}" type="button">${day.getDate()}</button>`;
+  }).join("");
+
+  menu.innerHTML = `
+    <div class="mb-3 flex items-center justify-between gap-2">
+      <button class="flex h-8 w-8 items-center justify-center rounded-md hover:bg-secondary" data-date-picker-month="-1" type="button" aria-label="Previous month">${icon("chevron-left", "h-4 w-4")}</button>
+      <div class="text-sm font-semibold">${escapeHtml(monthLabel)}</div>
+      <button class="flex h-8 w-8 items-center justify-center rounded-md hover:bg-secondary" data-date-picker-month="1" type="button" aria-label="Next month">${icon("chevron-right", "h-4 w-4")}</button>
+    </div>
+    <div class="date-picker-calendar">
+      ${weekdays.map((day) => `<div class="date-picker-weekday">${day}</div>`).join("")}
+      ${days}
+    </div>
+  `;
+
+  const rect = field?.getBoundingClientRect() || input.getBoundingClientRect();
+  const width = 292;
+  const left = Math.min(Math.max(rect.left, 12), window.innerWidth - width - 12);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${Math.min(rect.bottom + 8, window.innerHeight - 340)}px`;
+  menu.classList.remove("hidden");
+}
+
+function openDatePicker(nativeInput) {
+  if (!nativeInput) return;
+  const selected = dateFromIso(nativeInput.value);
+  const today = new Date();
+  state.activeDatePickerInput = nativeInput;
+  state.activeDatePickerMonth = new Date((selected || today).getFullYear(), (selected || today).getMonth(), 1);
+  renderDatePickerMenu();
+}
+
+function dateFieldMarkup(attributes = "") {
+  return `
+    <div class="field date-field" data-date-field>
+      <button class="date-picker-trigger" data-date-picker-trigger type="button" aria-label="Open date picker">
+        ${icon("calendar", "h-4 w-4")}
+      </button>
+      <input class="date-display-input" type="text" inputmode="numeric" placeholder="DD-MM-YYYY" data-date-display />
+      <input class="date-native-picker" type="hidden" data-date-native ${attributes} />
+    </div>
+  `;
 }
 
 function syncOrdersExposedFilterFields() {
@@ -3243,7 +3422,7 @@ function renderOrdersFavoriteFilters() {
         return `
           <label class="fabric-filter-field w-full ${definition.width}">
             <span>${definition.label}</span>
-            <input class="field" type="date" data-orders-date-filter="${key}" data-filter-label="${definition.label}" />
+            ${dateFieldMarkup(`data-orders-date-filter="${key}" data-filter-label="${definition.label}"`)}
           </label>
         `;
       }
@@ -7753,7 +7932,7 @@ function renderOnePageOrderPage() {
   const lockedWorkspace = `
     <section class="rounded-[14px] border border-dashed border-primary/20 bg-card p-6 shadow-panel">
       <h2 class="text-base font-semibold">Complete primary information</h2>
-      <p class="mt-1 text-sm text-muted-foreground">Choose the trouser item, then complete model, make and Fabric/wash to load FitProfile, FitTools and running info.</p>
+      <p class="mt-1 text-sm text-muted-foreground">Choose the item, then complete model, make and Fabric/wash to load FitProfile, FitTools and DesignOptions.</p>
     </section>
   `;
   const primarySection = `
@@ -7787,7 +7966,7 @@ function renderOnePageOrderPage() {
       <div class="mb-4 flex items-center justify-between gap-3 px-1">
         <div>
           <h2 class="text-base font-semibold">Order details</h2>
-          <p class="mt-1 text-sm text-muted-foreground">Fitprofile, fit tools, design, payment and final order details.</p>
+          <p class="mt-1 text-sm text-muted-foreground">FitProfile, FitTools, DesignOptions, and payment details.</p>
         </div>
         <span class="text-xs font-medium text-muted-foreground">After primary information</span>
       </div>
@@ -7825,6 +8004,12 @@ function renderOnePageOrderPage() {
 function setCreateOrderFlowItem(itemId) {
   const item = createOrderFlowAllItems().find((option) => option.id === itemId && !option.disabled);
   if (!item) return;
+  state.createOrderFlowSelectedItemId = item.id;
+  if (item.legacyReadyMade) {
+    state.createOrderFlowCategory = item.categoryId || "informal";
+    renderCreateOrderFlowModal();
+    return;
+  }
   resetOnePageOrderForItem(item.flowItem || item.id);
   if (item.fieldKey) updateOnePageOrderField(item.fieldKey, item.fieldValue || "");
   state.createOrderFlowCategory = item.categoryId || item.flowItem || item.id;
@@ -7854,10 +8039,15 @@ function createOrderFlowAllItems() {
 
 function createOrderFlowItemSelected(item) {
   if (item.disabled) return false;
+  if (item.legacyReadyMade) return state.createOrderFlowSelectedItemId === item.id;
   const flowItem = item.flowItem || item.id;
   if (state.onePageOrderItem !== flowItem) return false;
   if (!item.fieldKey) return true;
   return state.onePageOrderFields[item.fieldKey] === item.fieldValue;
+}
+
+function selectedCreateOrderFlowItem() {
+  return createOrderFlowAllItems().find((item) => createOrderFlowItemSelected(item)) || null;
 }
 
 function createOrderFlowVisibleItems() {
@@ -7887,7 +8077,7 @@ function renderCreateOrderFlowModal() {
     .join("");
 
   const visibleItems = createOrderFlowVisibleItems();
-  const selectedItem = createOrderFlowAllItems().find((item) => createOrderFlowItemSelected(item));
+  const selectedItem = selectedCreateOrderFlowItem();
   itemsWrap.innerHTML = visibleItems.length
     ? `
       <div class="grid gap-3">
@@ -7927,6 +8117,13 @@ function renderCreateOrderFlowModal() {
 }
 
 function startOnePageOrderFlow() {
+  const selectedItem = selectedCreateOrderFlowItem();
+  if (selectedItem?.legacyReadyMade) {
+    setCreateOrderFlowModal(false);
+    closeModals();
+    setPage("legacyReadyMadeOrder");
+    return;
+  }
   setCreateOrderFlowModal(false);
   state.onePageOrderStep = "basic";
   renderOnePageOrderPage();
@@ -7950,6 +8147,7 @@ function setPage(page, options = {}) {
   }
   const previousPage = state.currentPage;
   state.currentPage = page;
+  document.body.classList.toggle("legacy-system-active", ["legacyReadyMadeOrder", "legacyRPrice"].includes(page));
   if (page === "home" && previousPage !== "home") state.dashboardOverlayHidden = false;
   el("homeDashboardPage").classList.toggle("hidden", page !== "home");
   el("overviewPage").classList.toggle("hidden", page !== "overview");
@@ -7958,6 +8156,8 @@ function setPage(page, options = {}) {
   el("onePageOrderPage")?.classList.toggle("hidden", page !== "onePageOrder");
   el("ordersPage").classList.toggle("hidden", page !== "orders");
   el("orderDetailPage").classList.toggle("hidden", page !== "orderDetail");
+  el("legacyReadyMadeOrderPage")?.classList.toggle("hidden", page !== "legacyReadyMadeOrder");
+  el("legacyRPricePage")?.classList.toggle("hidden", page !== "legacyRPrice");
   el("fabricInventoryPage").classList.toggle("hidden", page !== "fabricInventory");
   el("shopSettingsPage").classList.toggle("hidden", page !== "shopSettings");
   el("deliveryCalendarPage").classList.toggle("hidden", page !== "deliveryCalendar");
@@ -7988,7 +8188,7 @@ function activeSidebarOrder() {
 }
 
 function renderPrimaryNavigation() {
-  const activeNav = state.currentPage === "fabricInventory" ? "stock" : ["orders", "orderDetail", "onePageOrder"].includes(state.currentPage) ? "orders" : state.currentPage === "home" ? "home" : state.currentPage === "shopSettings" ? "shopSettings" : state.currentPage === "deliveryCalendar" ? "delivery" : state.currentPage === "invoices" ? "other" : state.currentPage === "downloads" ? "downloads" : "customers";
+  const activeNav = state.currentPage === "fabricInventory" ? "stock" : ["orders", "orderDetail", "onePageOrder", "legacyReadyMadeOrder"].includes(state.currentPage) ? "orders" : state.currentPage === "home" ? "home" : state.currentPage === "shopSettings" ? "shopSettings" : state.currentPage === "deliveryCalendar" ? "delivery" : ["invoices", "legacyRPrice"].includes(state.currentPage) ? "other" : state.currentPage === "downloads" ? "downloads" : "customers";
   const showCustomerContext = ["detail", "createFitProfile"].includes(state.currentPage);
   const showFitProfileContext = showCustomerContext && (state.currentPage === "createFitProfile" || state.detailTab === "fitprofiles");
   const showFitProfileTask = state.currentPage === "createFitProfile";
@@ -9797,6 +9997,7 @@ function syncFabricFilterField(key, value) {
   });
   document.querySelectorAll(`input[data-fabric-filter="${key}"]`).forEach((field) => {
     field.value = value;
+    syncDateDisplayFor(field);
   });
 }
 
@@ -9879,7 +10080,7 @@ function renderFabricFavoriteFilters() {
         return `
           <label class="fabric-filter-field w-full ${definition.width}">
             <span>${definition.label}</span>
-            <input class="field" type="date" data-fabric-filter="${key}" data-filter-label="${definition.label}" />
+            ${dateFieldMarkup(`data-fabric-filter="${key}" data-filter-label="${definition.label}"`)}
           </label>
         `;
       }
@@ -11697,11 +11898,17 @@ function copyOrderFormBuilder(formId) {
 }
 
 function beginOrderFormBuilder() {
-  if (!orderFormStartSelectedItem()) {
+  const selectedItem = orderFormStartSelectedItem();
+  if (!selectedItem) {
     showToast("Select an available form item first.");
     return;
   }
   setOrderFormStartModal(false);
+  if (selectedItem.legacyReadyMade) {
+    closeModals();
+    setPage("legacyReadyMadeOrder");
+    return;
+  }
   openOrderFormBuilder();
 }
 
@@ -11771,8 +11978,9 @@ function setCreateOrderStopModal(open) {
 function setCreateOrderFlowModal(open) {
   el("createOrderFlowModal")?.classList.toggle("open", open);
   if (open) {
-    state.createOrderFlowCategory = "formal";
+    state.createOrderFlowCategory = "informal";
     state.createOrderFlowSearch = "";
+    setCreateOrderFlowItem("legacy-informal-jacket-trouser");
     renderCreateOrderFlowModal();
   }
   setOverlay(open || anyModalOpen());
@@ -11865,9 +12073,9 @@ function setCreateFitProfileStartModal(open) {
 function setOrderFormStartModal(open) {
   el("orderFormStartModal")?.classList.toggle("open", open);
   if (open) {
-    state.orderFormStartCategory = "trousers";
+    state.orderFormStartCategory = "informal";
     state.orderFormStartSearch = "";
-    if (!orderFormStartSelectedItem()) setOrderFormStartItem("trousers-standard");
+    setOrderFormStartItem("legacy-informal-jacket-trouser");
     renderOrderFormStartModal();
   }
   setOverlay(open || anyModalOpen());
@@ -12011,6 +12219,11 @@ function positionCreateFitProfileStartPackageMenu() {
   menu.style.removeProperty("max-height");
 }
 
+function applyGlobalChromeVisibility() {
+  document.body.classList.toggle("ggg-global-chrome-hidden", state.globalChromeHidden);
+  localStorage.setItem("relocate-ggg-global-chrome-hidden", String(state.globalChromeHidden));
+}
+
 function applyTheme() {
   state.interfaceDensity = settingsDensityLabels[state.interfaceDensity] ? state.interfaceDensity : "comfortable";
   state.denseModeEnabled = state.interfaceDensity === "dense";
@@ -12035,6 +12248,7 @@ function applyTheme() {
   document.querySelectorAll(".nav-mode-toggle").forEach((toggle) => {
     toggle.checked = state.navMode === "top";
   });
+  applyGlobalChromeVisibility();
   document.querySelectorAll(".theme-card").forEach((card) => {
     card.classList.toggle("active", card.dataset.themeOption === state.theme);
   });
@@ -12059,6 +12273,296 @@ function applyTheme() {
     check.classList.toggle("hidden", check.dataset.fontCheck !== state.font);
   });
   renderAccountSettingsSelects();
+  applyCopyEditMode();
+}
+
+const copyEditSelector = [
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "p",
+  "span",
+  "button",
+  "a",
+  "th",
+  "td",
+  "label",
+  "figcaption",
+  "[data-copy-edit-text]",
+].join(",");
+
+function copyEditTextNodes(node) {
+  return [...node.childNodes].filter((child) => child.nodeType === Node.TEXT_NODE && child.textContent.trim());
+}
+
+function copyEditElementText(node) {
+  const directText = copyEditTextNodes(node)
+    .map((child) => child.textContent.trim())
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return directText || node.textContent.replace(/\s+/g, " ").trim();
+}
+
+function copyEditNodePath(node) {
+  const parts = [];
+  let current = node;
+  while (current && current.nodeType === Node.ELEMENT_NODE && current !== document.body) {
+    const tag = current.tagName.toLowerCase();
+    const id = current.id ? `#${current.id}` : "";
+    const dataKey = current.dataset?.primaryNav || current.dataset?.popoutPanel || current.dataset?.ordersPage || current.dataset?.settingsNav || "";
+    const siblings = current.parentElement ? [...current.parentElement.children].filter((child) => child.tagName === current.tagName) : [];
+    const index = siblings.length > 1 ? `:nth-of-type(${siblings.indexOf(current) + 1})` : "";
+    parts.unshift(`${tag}${id}${dataKey ? `[${dataKey}]` : ""}${id ? "" : index}`);
+    current = current.parentElement;
+  }
+  return parts.join(">");
+}
+
+function copyEditIdFor(node) {
+  if (!node.dataset.copyEditId) node.dataset.copyEditId = copyEditNodePath(node);
+  return node.dataset.copyEditId;
+}
+
+function copyEditElementDescriptor(node) {
+  const pieces = [node.tagName.toLowerCase()];
+  if (node.id) pieces.push(`#${node.id}`);
+  if (node.className && typeof node.className === "string") {
+    const classes = node.className
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((className) => !className.startsWith("copy-edit"))
+      .slice(0, 5);
+    if (classes.length) pieces.push(`.${classes.join(".")}`);
+  }
+  return pieces.join("");
+}
+
+function copyEditNearestLandmark(node) {
+  const landmark = node.closest("main, aside, header, nav, section, article, form, dialog, [id]");
+  if (!landmark || landmark === document.body) return "";
+  return copyEditElementDescriptor(landmark);
+}
+
+function copyEditNearbyText(node) {
+  const container = node.closest("section, article, form, aside, header, main, [id]") || node.parentElement;
+  if (!container) return "";
+  return container.textContent.replace(/\s+/g, " ").trim().slice(0, 360);
+}
+
+function copyEditPageTitle() {
+  const visibleTitle = [...document.querySelectorAll("main h1, main h2")]
+    .find((node) => node.offsetParent !== null && copyEditElementText(node));
+  return visibleTitle ? copyEditElementText(visibleTitle) : state.currentPage;
+}
+
+function copyEditMetadataFor(node, originalText = copyEditElementText(node)) {
+  return {
+    id: copyEditIdFor(node),
+    page: state.currentPage,
+    pageTitle: copyEditPageTitle(),
+    tag: node.tagName.toLowerCase(),
+    element: copyEditElementDescriptor(node),
+    path: copyEditNodePath(node),
+    landmark: copyEditNearestLandmark(node),
+    original: originalText,
+    context: copyEditNearbyText(node),
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function isCopyEditCandidate(node) {
+  if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+  if (node.closest("[data-copy-edit-ignore], .copy-edit-toolbar, script, style, svg, input, textarea, select, option")) return false;
+  if (node.matches("[contenteditable='false'], .icon, .sr-only")) return false;
+  if (node.querySelector("input, textarea, select, option")) return false;
+  const text = copyEditElementText(node);
+  if (!text || text.length > 180) return false;
+  const nestedEditable = [...node.children].some((child) => child.matches?.(copyEditSelector) && copyEditElementText(child));
+  return !nestedEditable;
+}
+
+function writeCopyEditText(node, value) {
+  const nextValue = String(value ?? "").trim();
+  const directText = copyEditTextNodes(node);
+  if (directText.length) {
+    const original = directText[0].textContent;
+    const leading = original.match(/^\s*/)?.[0] || "";
+    const trailing = original.match(/\s*$/)?.[0] || "";
+    directText[0].textContent = `${leading}${nextValue}${trailing}`;
+    directText.slice(1).forEach((child) => {
+      child.textContent = "";
+    });
+  } else {
+    node.textContent = nextValue;
+  }
+}
+
+function currentCopyEditMap() {
+  return state.copyEditMode ? state.copyEditDraftOverrides : state.copyEditOverrides;
+}
+
+function applyCopyEditOverrides(root = document.body) {
+  if (!root) return;
+  root.querySelectorAll(copyEditSelector).forEach((node) => {
+    if (!isCopyEditCandidate(node)) {
+      node.removeAttribute("data-copy-edit-id");
+      node.classList?.remove("copy-edit-active");
+      return;
+    }
+    const id = copyEditIdFor(node);
+    const override = currentCopyEditMap()[id];
+    if (override?.value && document.activeElement !== node && copyEditElementText(node) !== override.value) {
+      writeCopyEditText(node, override.value);
+    }
+  });
+  document.querySelectorAll(".copy-edit-mode-toggle").forEach((toggle) => {
+    toggle.checked = state.copyEditMode;
+  });
+}
+
+function applyCopyEditMode() {
+  document.body.classList.toggle("copy-edit-mode", state.copyEditMode);
+  localStorage.setItem("relocate-copy-edit-mode", String(state.copyEditMode));
+  document.querySelectorAll(".copy-edit-mode-toggle").forEach((toggle) => {
+    toggle.checked = state.copyEditMode;
+  });
+  if (!state.copyEditMode) {
+    state.activeCopyEditId = null;
+    document.querySelectorAll(".copy-edit-active").forEach((node) => node.classList.remove("copy-edit-active"));
+    if (el("copyEditField")) el("copyEditField").value = "";
+    setText("copyEditTargetLabel", "Click text in the prototype to edit it.");
+  }
+  applyCopyEditOverrides();
+}
+
+function selectCopyEditNode(node) {
+  if (!isCopyEditCandidate(node)) return;
+  const id = copyEditIdFor(node);
+  const text = copyEditElementText(node);
+  if (!state.copyEditDraftOverrides[id]) {
+    state.copyEditDraftOverrides[id] = {
+      ...copyEditMetadataFor(node, text),
+      value: text,
+      firstEditedAt: new Date().toISOString(),
+      lastEditedAt: new Date().toISOString(),
+    };
+  }
+  state.activeCopyEditId = id;
+  document.querySelectorAll(".copy-edit-active").forEach((item) => item.classList.remove("copy-edit-active"));
+  node.classList.add("copy-edit-active");
+  if (el("copyEditField")) {
+    el("copyEditField").value = state.copyEditDraftOverrides[id].value || text;
+    requestAnimationFrame(() => el("copyEditField")?.focus());
+  }
+  setText("copyEditTargetLabel", text);
+}
+
+function applyActiveCopyEdit() {
+  if (!state.activeCopyEditId || !el("copyEditField")) return false;
+  const value = el("copyEditField").value.trim();
+  const node = document.querySelector(`[data-copy-edit-id="${CSS.escape(state.activeCopyEditId)}"]`);
+  const original = state.copyEditDraftOverrides[state.activeCopyEditId]?.original || (node ? copyEditElementText(node) : value);
+  const previous = state.copyEditDraftOverrides[state.activeCopyEditId] || {};
+  const metadata = node ? copyEditMetadataFor(node, original) : previous;
+  state.copyEditDraftOverrides[state.activeCopyEditId] = {
+    ...previous,
+    ...metadata,
+    original,
+    value,
+    firstEditedAt: previous.firstEditedAt || new Date().toISOString(),
+    lastEditedAt: new Date().toISOString(),
+  };
+  if (node) writeCopyEditText(node, value);
+  return true;
+}
+
+function saveCopyEditOverrides() {
+  applyActiveCopyEdit();
+  state.copyEditOverrides = { ...state.copyEditDraftOverrides };
+  localStorage.setItem(copyEditStorageKey, JSON.stringify(state.copyEditOverrides));
+  showToast("Text edits saved for this prototype.");
+  applyCopyEditOverrides();
+}
+
+function exportCopyEditOverrides() {
+  applyActiveCopyEdit();
+  const overrides = Object.entries(state.copyEditDraftOverrides || {}).filter(([, override]) => {
+    return override?.value && override.value !== override.original;
+  });
+  if (!overrides.length) {
+    showToast("No text edits to export yet.");
+    return;
+  }
+  const edits = overrides.map(([id, override]) => {
+    const node = document.querySelector(`[data-copy-edit-id="${CSS.escape(id)}"]`);
+    const metadata = node ? copyEditMetadataFor(node, override.original || copyEditElementText(node)) : {};
+    return {
+      id,
+      page: override.page || metadata.page || "",
+      pageTitle: override.pageTitle || metadata.pageTitle || "",
+      element: override.element || metadata.element || "",
+      tag: override.tag || metadata.tag || "",
+      path: override.path || metadata.path || id,
+      landmark: override.landmark || metadata.landmark || "",
+      context: override.context || metadata.context || "",
+      original: override.original || metadata.original || "",
+      value: override.value || "",
+      firstEditedAt: override.firstEditedAt || "",
+      lastEditedAt: override.lastEditedAt || "",
+    };
+  });
+  const payload = {
+    type: "relocate-copy-edit-session",
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    sessionStartedAt: state.copyEditSessionStartedAt,
+    source: {
+      title: document.title,
+      page: state.currentPage,
+      pageTitle: copyEditPageTitle(),
+      path: window.location.pathname.split("/").pop() || "index.html",
+      url: window.location.href,
+      storageKey: copyEditStorageKey,
+    },
+    summary: {
+      editCount: edits.length,
+      pages: [...new Set(edits.map((edit) => edit.page).filter(Boolean))],
+    },
+    edits,
+    overrides: Object.fromEntries(overrides),
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  link.href = url;
+  link.download = `relocate-text-edits-${stamp}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast("Text edit export downloaded.");
+}
+
+function resetCopyEditOverrides() {
+  state.copyEditOverrides = {};
+  state.copyEditDraftOverrides = {};
+  state.activeCopyEditId = null;
+  localStorage.removeItem(copyEditStorageKey);
+  if (el("copyEditField")) el("copyEditField").value = "";
+  setText("copyEditTargetLabel", "Click text in the prototype to edit it.");
+  setPage(state.currentPage);
+  applyCopyEditOverrides();
+  showToast("Text edits reset.");
+}
+
+function scheduleCopyEditRefresh() {
+  window.clearTimeout(scheduleCopyEditRefresh.timeout);
+  scheduleCopyEditRefresh.timeout = window.setTimeout(() => applyCopyEditOverrides(), 40);
 }
 
 function closeNavPopouts() {
@@ -12167,6 +12671,7 @@ function openCustomer(id, editing = false) {
   el("emailInput").value = customer.email;
   el("mobileInput").value = customer.mobile === "-" ? "" : customer.mobile;
   el("dobInput").value = customer.dob || "";
+  syncDateDisplayFor(el("dobInput"));
   el("homeAddressInput").value = customer.address || "";
   el("homeCityInput").value = customer.city || "";
   el("homePostcodeInput").value = customer.postcode || "";
@@ -12246,6 +12751,7 @@ function resetFabricTableFilters() {
   if (el("fabricSearch")) el("fabricSearch").value = "";
   document.querySelectorAll("input[data-fabric-filter]").forEach((input) => {
     input.value = "";
+    syncDateDisplayFor(input);
   });
   document.querySelectorAll("[data-fabric-select]").forEach((field) => syncFabricFilterField(field.dataset.fabricSelect, ""));
   state.fabricFilters = {};
@@ -12279,6 +12785,72 @@ function handleTableSort(button) {
 }
 
 function wireEvents() {
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (!state.copyEditMode || event.target.closest("[data-copy-edit-ignore], .copy-edit-toolbar")) return;
+      const target = event.target.closest(copyEditSelector);
+      if (!target || !isCopyEditCandidate(target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      selectCopyEditNode(target);
+    },
+    true,
+  );
+
+  document.querySelectorAll(".copy-edit-mode-toggle").forEach((toggle) => {
+    toggle.addEventListener("change", () => {
+      state.copyEditMode = toggle.checked;
+      state.copyEditDraftOverrides = { ...state.copyEditOverrides };
+      applyCopyEditMode();
+      closeNavPopouts();
+      showToast(state.copyEditMode ? "Edit text mode enabled." : "Edit text mode disabled.");
+    });
+  });
+
+  el("copyEditApplyBtn")?.addEventListener("click", () => {
+    if (applyActiveCopyEdit()) showToast("Text applied. Press Save to keep it.");
+  });
+
+  el("copyEditSaveBtn")?.addEventListener("click", saveCopyEditOverrides);
+  document.querySelectorAll(".copy-edit-export-action").forEach((button) => {
+    button.addEventListener("click", () => {
+      closeNavPopouts();
+      exportCopyEditOverrides();
+    });
+  });
+  el("copyEditResetBtn")?.addEventListener("click", resetCopyEditOverrides);
+  el("copyEditCloseBtn")?.addEventListener("click", () => {
+    state.copyEditMode = false;
+    state.copyEditDraftOverrides = { ...state.copyEditOverrides };
+    applyCopyEditMode();
+    showToast("Edit text mode disabled.");
+  });
+
+  el("copyEditField")?.addEventListener("keydown", (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      event.preventDefault();
+      saveCopyEditOverrides();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      state.copyEditMode = false;
+      state.copyEditDraftOverrides = { ...state.copyEditOverrides };
+      applyCopyEditMode();
+    }
+  });
+
+  el("copyEditField")?.addEventListener("input", () => {
+    if (!state.activeCopyEditId) return;
+    const existing = state.copyEditDraftOverrides[state.activeCopyEditId] || { original: "", firstEditedAt: new Date().toISOString() };
+    state.copyEditDraftOverrides[state.activeCopyEditId] = {
+      ...existing,
+      value: el("copyEditField").value.trim(),
+      lastEditedAt: new Date().toISOString(),
+    };
+  });
+
   document.querySelectorAll(".nav-popout-trigger").forEach((trigger) => {
     trigger.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -12318,6 +12890,69 @@ function wireEvents() {
     if (event.target.closest("button, a")) setMobileNavigation(false);
   });
 
+  document.addEventListener("click", (event) => {
+    const dayButton = event.target.closest("[data-date-picker-day]");
+    if (dayButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      selectDatePickerDay(dayButton.dataset.datePickerDay);
+      return;
+    }
+
+    const monthButton = event.target.closest("[data-date-picker-month]");
+    if (monthButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      setDatePickerMonth(Number(monthButton.dataset.datePickerMonth));
+      return;
+    }
+
+    if (event.target.closest("#datePickerMenu")) return;
+
+    const dateField = event.target.closest("[data-date-field]");
+    if (dateField) {
+      event.preventDefault();
+      event.stopPropagation();
+      openDatePicker(nativeDateInputFor(dateField));
+      return;
+    }
+
+    closeDatePicker();
+  });
+
+  document.addEventListener("input", (event) => {
+    const displayInput = event.target.closest("[data-date-display], [data-date-display-for]");
+    if (displayInput) {
+      const nativeInput = nativeDateInputFor(displayInput);
+      const parsed = parseDisplayDate(displayInput.value);
+      if (nativeInput && parsed !== null) {
+        nativeInput.value = parsed;
+        nativeInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      return;
+    }
+
+    const nativeInput = event.target.closest("[data-date-native]");
+    if (nativeInput) syncDateDisplayFor(nativeInput);
+  });
+
+  document.addEventListener("change", (event) => {
+    const nativeInput = event.target.closest("[data-date-native]");
+    if (!nativeInput) return;
+    syncDateDisplayFor(nativeInput);
+    nativeInput.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+  document.querySelectorAll(".notification-nav-action").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeNavPopout = null;
+      state.activeNavSubpopout = null;
+      renderNavPopouts();
+      setMobileNavigation(false);
+      showToast("Notifications coming next.");
+    });
+  });
+
   document.querySelectorAll("[data-primary-nav='home']").forEach((button) => {
     button.addEventListener("click", () => {
       closeNavPopouts();
@@ -12350,6 +12985,16 @@ function wireEvents() {
     button.addEventListener("click", () => {
       closeNavPopouts();
       setPage("invoices");
+    });
+  });
+
+  document.querySelectorAll("[data-legacy-rprice-page]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeNavPopouts();
+      setMobileNavigation(false);
+      setPage("legacyRPrice");
     });
   });
 
@@ -12411,6 +13056,8 @@ function wireEvents() {
     if (el("invoiceNumberSearch")) el("invoiceNumberSearch").value = "";
     if (el("invoiceDateFrom")) el("invoiceDateFrom").value = "";
     if (el("invoiceDateTo")) el("invoiceDateTo").value = "";
+    syncDateDisplayFor(el("invoiceDateFrom"));
+    syncDateDisplayFor(el("invoiceDateTo"));
     renderInvoicesPage();
   });
 
@@ -12925,7 +13572,7 @@ function wireEvents() {
   });
   el("beginCreateOrderFlowBtn")?.addEventListener("click", (event) => {
     event.stopPropagation();
-    const selectedItem = createOrderFlowAllItems().find((item) => createOrderFlowItemSelected(item));
+    const selectedItem = selectedCreateOrderFlowItem();
     if (!selectedItem) {
       showToast("Select an available order item first.");
       return;
@@ -13402,6 +14049,16 @@ function wireEvents() {
   });
 
   el("fabricInventoryPage").addEventListener("change", (event) => {
+    const exposedDateFilter = event.target.closest("input[data-fabric-filter]");
+    if (!exposedDateFilter) return;
+    syncFabricFilterField(exposedDateFilter.dataset.fabricFilter, exposedDateFilter.value);
+    if (exposedDateFilter.closest("#fabricAdvancedFiltersPanel")) return;
+    state.fabricFilters = collectFabricFilters();
+    state.fabricPage = 1;
+    renderFabricInventory();
+  });
+
+  el("fabricInventoryPage").addEventListener("input", (event) => {
     const exposedDateFilter = event.target.closest("input[data-fabric-filter]");
     if (!exposedDateFilter) return;
     syncFabricFilterField(exposedDateFilter.dataset.fabricFilter, exposedDateFilter.value);
@@ -15078,6 +15735,7 @@ function wireEvents() {
   });
 
   el("createOrderFormBtn")?.addEventListener("click", () => setOrderFormStartModal(true));
+  el("legacyReadyMadeBackBtn")?.addEventListener("click", () => setPage("home"));
   el("closeOrderFormStartBtn")?.addEventListener("click", () => setOrderFormStartModal(false));
   el("cancelOrderFormStartBtn")?.addEventListener("click", () => setOrderFormStartModal(false));
   el("beginOrderFormBtn")?.addEventListener("click", beginOrderFormBuilder);
@@ -15593,6 +16251,14 @@ function wireEvents() {
         showToast(state.gdprMaskEnabled ? "Customer emails masked." : "Customer emails restored.");
         state.secretActionSequence = "";
       }
+      if (state.secretActionSequence.endsWith("GGG")) {
+        state.globalChromeHidden = !state.globalChromeHidden;
+        applyGlobalChromeVisibility();
+        el("languageMenu")?.classList.remove("open");
+        setGlobalSearchModal(false);
+        showToast(state.globalChromeHidden ? "Presentation chrome hidden." : "Presentation chrome shown.");
+        state.secretActionSequence = "";
+      }
       if (state.secretActionSequence.endsWith("III")) {
         state.orderDetailInfoVisible = !state.orderDetailInfoVisible;
         localStorage.setItem("relocate-order-detail-info-visible", String(state.orderDetailInfoVisible));
@@ -15646,6 +16312,7 @@ function wireEvents() {
   });
 
   const repositionOpenDropdowns = () => {
+    if (state.activeDatePickerInput) renderDatePickerMenu();
     if (state.activeCreateFitProfileSelect) renderCreateFitProfileSelectMenu();
     if (state.activeOnePageOrderSelect) renderOnePageOrderSelectMenu();
     if (state.activeOnePageFabricSearch !== null && state.currentPage === "onePageOrder") {
@@ -15709,7 +16376,28 @@ renderPrimaryNavigation();
 renderCompanyView();
 applyTheme();
 applyActionColumnMode();
+syncAllDateDisplays();
 document.addEventListener("click", (event) => {
+  const legacyHomeButton = event.target.closest("[data-legacy-home]");
+  if (legacyHomeButton) {
+    setPage("home");
+    return;
+  }
+
+  const legacyBackButton = event.target.closest("[data-legacy-back]");
+  if (legacyBackButton) {
+    setPage(state.currentPage === "legacyRPrice" ? "invoices" : "orders");
+    return;
+  }
+
+  const legacyRPriceButton = event.target.closest("[data-legacy-rprice-page]");
+  if (legacyRPriceButton) {
+    closeNavPopouts();
+    setMobileNavigation(false);
+    setPage("legacyRPrice");
+    return;
+  }
+
   const runningInfoToggle = event.target.closest("[data-one-page-running-info-toggle]");
   if (runningInfoToggle) {
     state.onePageOrderRunningInfoCollapsed = !state.onePageOrderRunningInfoCollapsed;
@@ -15907,6 +16595,9 @@ document.addEventListener("change", (event) => {
   renderOnePageOrderPage();
 });
 wireEvents();
+const copyEditObserver = new MutationObserver(scheduleCopyEditRefresh);
+copyEditObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+applyCopyEditMode();
 window.addEventListener("beforeunload", (event) => {
   if (!state.shopSettingsDirty) return;
   event.preventDefault();
