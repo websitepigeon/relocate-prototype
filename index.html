@@ -246,6 +246,54 @@
         background: hsl(var(--sidebar)) !important;
       }
 
+      body.copy-edit-mode [data-copy-edit-id] {
+        cursor: text;
+        outline: 1px dashed hsl(var(--primary) / 0.32);
+        outline-offset: 2px;
+      }
+
+      body.copy-edit-mode [data-copy-edit-id]:hover,
+      body.copy-edit-mode [data-copy-edit-id].copy-edit-active {
+        border-radius: 6px;
+        background: hsl(var(--primary) / 0.08);
+        outline-color: hsl(var(--primary) / 0.7);
+      }
+
+      .copy-edit-toolbar {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 2300;
+        display: none;
+        width: min(420px, calc(100vw - 36px));
+        border: 1px solid hsl(var(--border));
+        border-radius: 12px;
+        background: hsl(var(--card));
+        box-shadow: 0 18px 48px hsl(0 0% 0% / 0.18);
+      }
+
+      body.copy-edit-mode .copy-edit-toolbar {
+        display: block;
+      }
+
+      .copy-edit-field {
+        min-height: 72px;
+        width: 100%;
+        resize: vertical;
+        border: 1px solid hsl(var(--border));
+        border-radius: 9px;
+        background: hsl(var(--background));
+        padding: 10px 12px;
+        color: hsl(var(--foreground));
+        font: inherit;
+        outline: 0;
+      }
+
+      .copy-edit-field:focus {
+        border-color: hsl(var(--primary) / 0.55);
+        box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12);
+      }
+
       main {
         background: hsl(var(--surface)) !important;
         min-width: 0;
@@ -309,6 +357,98 @@
       button:focus-visible {
         outline: 2px solid hsl(var(--ring) / 0.35);
         outline-offset: 2px;
+      }
+
+      .date-field {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+      }
+
+      .date-field .date-display-input {
+        min-width: 0;
+        flex: 1;
+        border: 0;
+        background: transparent;
+        outline: 0;
+      }
+
+      .date-field .date-display-input::placeholder {
+        color: hsl(var(--muted-foreground));
+      }
+
+      .date-picker-trigger {
+        display: flex;
+        height: 24px;
+        width: 24px;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        color: hsl(var(--muted-foreground));
+      }
+
+      .date-native-picker {
+        display: none;
+      }
+
+      .date-picker-popout {
+        position: fixed;
+        z-index: 3050;
+        width: 292px;
+        border-radius: 12px;
+        border: 1px solid hsl(var(--border));
+        background: hsl(var(--card));
+        padding: 12px;
+        box-shadow: 0 18px 44px rgb(15 23 42 / 0.16);
+      }
+
+      .date-picker-popout.hidden {
+        display: none;
+      }
+
+      .date-picker-calendar {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .date-picker-day,
+      .date-picker-weekday {
+        display: flex;
+        height: 32px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-size: 13px;
+      }
+
+      .date-picker-weekday {
+        color: hsl(var(--muted-foreground));
+        font-weight: 600;
+      }
+
+      .date-picker-day {
+        color: hsl(var(--foreground));
+      }
+
+      .date-picker-day:hover {
+        background: hsl(var(--secondary));
+      }
+
+      .date-picker-day.outside {
+        color: hsl(var(--muted-foreground));
+        opacity: 0.55;
+      }
+
+      .date-picker-day.today {
+        box-shadow: inset 0 0 0 1px hsl(var(--border));
+      }
+
+      .date-picker-day.selected {
+        background: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
       }
 
       .btn-primary {
@@ -1273,8 +1413,573 @@
         display: flex;
       }
 
+      .dashboard-wip-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: hsl(var(--background) / 0.72);
+        backdrop-filter: blur(2px);
+      }
+
+      .dashboard-wip-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid hsl(var(--border));
+        border-radius: 14px;
+        background: hsl(var(--card) / 0.94);
+        color: hsl(var(--foreground));
+        padding: 16px 24px;
+        font-size: 18px;
+        font-weight: 650;
+        box-shadow: 0 20px 60px hsl(var(--foreground) / 0.14);
+      }
+
+      :root[data-mode="dark"] .dashboard-wip-overlay {
+        background: hsl(0 0% 0% / 0.58);
+        backdrop-filter: blur(3px);
+      }
+
+      :root[data-mode="dark"] .dashboard-wip-card {
+        border-color: hsl(var(--border) / 0.78);
+        background: hsl(var(--card) / 0.9);
+        box-shadow: 0 24px 70px hsl(0 0% 0% / 0.42);
+      }
+
+      body.legacy-system-active #appShell {
+        grid-template-columns: 1fr !important;
+        width: 100vw !important;
+        max-width: none !important;
+      }
+
+      body.legacy-system-active #appTopNav,
+      body.legacy-system-active #mobileNavigation,
+      body.legacy-system-active #mobileNavDrawer,
+      body.legacy-system-active #appShell > .sidebar,
+      body.legacy-system-active #copyEditToolbar,
+      body.legacy-system-active .global-header-bar,
+      body.legacy-system-active .mobile-nav {
+        display: none !important;
+      }
+
+      body.legacy-system-active main {
+        background: #ffffff !important;
+        grid-column: 1 / -1 !important;
+        width: 100vw !important;
+        min-width: 100vw !important;
+        overflow: visible !important;
+      }
+
+      .legacy-ready-made-page,
+      .legacy-rprice-page,
+      .legacy-ready-made-page *,
+      .legacy-rprice-page * {
+        box-sizing: border-box;
+        font-family: Arial, Helvetica, sans-serif !important;
+        letter-spacing: 0 !important;
+      }
+
+      .legacy-ready-made-page,
+      .legacy-rprice-page {
+        min-height: 100vh;
+        width: 100vw;
+        min-width: 100vw;
+        overflow: auto;
+        background: #ffffff;
+        color: #555555;
+        font-size: 12px;
+        line-height: 1.2;
+      }
+
+      .legacy-migration-banner {
+        display: grid;
+        grid-template-columns: minmax(150px, 240px) 1fr minmax(150px, 240px);
+        align-items: center;
+        gap: 16px;
+        min-height: 56px;
+        border-bottom: 1px solid hsl(var(--primary) / 0.32);
+        background: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+        padding: 9px 16px;
+        font-family: var(--font-family), Inter, sans-serif !important;
+        box-shadow: 0 8px 22px hsl(var(--primary) / 0.16);
+      }
+
+      .legacy-migration-banner strong {
+        justify-self: center;
+        text-align: center;
+        font-family: var(--font-family), Inter, sans-serif !important;
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      .legacy-back-button {
+        display: inline-flex;
+        width: max-content;
+        min-height: 36px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px solid hsl(var(--primary-foreground) / 0.24);
+        border-radius: 8px;
+        background: hsl(var(--primary-foreground) / 0.12);
+        color: hsl(var(--primary-foreground));
+        padding: 0 12px;
+        font-family: var(--font-family), Inter, sans-serif !important;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .legacy-back-button:hover {
+        background: hsl(var(--primary-foreground) / 0.18);
+      }
+
+      .legacy-home-button {
+        justify-self: end;
+      }
+
+      .legacy-page-canvas {
+        width: 100%;
+        min-width: 2048px;
+        min-height: 846px;
+        background: #ffffff;
+        padding: 0 8px 80px;
+      }
+
+      .legacy-title-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: start;
+        min-height: 64px;
+        padding-top: 9px;
+      }
+
+      .legacy-title-left {
+        padding-top: 27px;
+        font-weight: bold;
+      }
+
+      .legacy-title-right {
+        text-align: right;
+      }
+
+      .legacy-account-title {
+        margin: 0;
+        color: #5a5a5a;
+        font-size: 20px;
+        font-weight: normal;
+      }
+
+      .legacy-total {
+        margin-top: 6px;
+        padding-right: 12px;
+        font-weight: bold;
+      }
+
+      .legacy-work-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 512px;
+        gap: 20px;
+      }
+
+      .legacy-left-shell {
+        position: relative;
+      }
+
+      .legacy-tab {
+        display: inline-flex;
+        align-items: center;
+        height: 36px;
+        min-width: 101px;
+        border: 1px solid #c8c8c8;
+        border-bottom: 0;
+        border-radius: 6px 6px 0 0;
+        background: #eeeeee;
+        padding: 0 15px;
+        font-weight: bold;
+      }
+
+      .legacy-main-panel {
+        min-height: 704px;
+        border: 1px solid #c8c8c8;
+        border-radius: 0 3px 3px 3px;
+        background: #eeeeee;
+        padding: 50px 30px 35px;
+      }
+
+      .legacy-step {
+        position: absolute;
+        top: 16px;
+        right: -19px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        color: #888888;
+      }
+
+      .legacy-next-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 27px;
+        border: 0;
+        border-radius: 4px;
+        background: #a7a7a7;
+        color: #ffffff;
+        font-size: 17px;
+        line-height: 1;
+      }
+
+      .legacy-form-grid {
+        display: grid;
+        grid-template-columns: 240px repeat(3, minmax(280px, 1fr));
+        column-gap: 34px;
+        row-gap: 4px;
+        align-items: center;
+      }
+
+      .legacy-label {
+        align-self: center;
+        min-height: 36px;
+        padding-top: 10px;
+        font-weight: bold;
+      }
+
+      .legacy-column-label {
+        min-height: 25px;
+        padding: 0 0 7px 4px;
+        align-self: end;
+        font-weight: bold;
+      }
+
+      .legacy-field,
+      .legacy-select {
+        height: 34px;
+        border: 1px solid #c9c9c9;
+        border-radius: 4px;
+        background: #f9f9f9;
+      }
+
+      .legacy-select {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-left: 12px;
+        color: #333333;
+      }
+
+      .legacy-select::after {
+        content: "";
+        width: 36px;
+        height: 32px;
+        margin-left: auto;
+        border-left: 1px solid #e2e2e2;
+        background: linear-gradient(135deg, transparent 45%, #555555 46%, #555555 58%, transparent 59%) center / 13px 13px no-repeat;
+      }
+
+      .legacy-info-dot {
+        display: inline-flex;
+        width: 20px;
+        height: 20px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #8f8f8f;
+        color: #ffffff;
+        font-family: Georgia, serif !important;
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      .legacy-inline-info {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 24px;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .legacy-switch {
+        position: relative;
+        width: 59px;
+        height: 34px;
+        border-radius: 18px;
+        background: #c9c9c9;
+      }
+
+      .legacy-switch::before {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 28px;
+        height: 28px;
+        border: 1px solid #aaa;
+        border-radius: 50%;
+        background: #fbfbfb;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      }
+
+      .legacy-side {
+        padding-top: 36px;
+      }
+
+      .legacy-panel-title {
+        height: 29px;
+        border-radius: 3px 3px 0 0;
+        background: #9c9c9c;
+        color: #ffffff;
+        padding: 8px 18px;
+        font-weight: bold;
+      }
+
+      .legacy-panel-title.with-arrows {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .legacy-icons {
+        display: flex;
+        height: 45px;
+        align-items: center;
+        gap: 13px;
+        border-left: 1px solid #d4d4d4;
+        border-right: 1px solid #d4d4d4;
+        background: #ffffff;
+        padding-left: 12px;
+        color: #5d5d5d;
+        font-size: 23px;
+      }
+
+      .legacy-icons span {
+        display: inline-flex;
+        align-items: center;
+        min-width: 20px;
+        height: 28px;
+        font-weight: bold;
+      }
+
+      .legacy-card {
+        min-height: 276px;
+        border: 1px solid #d3d3d3;
+        border-radius: 4px;
+        background: #eeeeee;
+        padding: 15px;
+      }
+
+      .legacy-info-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 16px;
+        margin-bottom: 26px;
+      }
+
+      .legacy-caution {
+        margin-top: 10px;
+      }
+
+      .legacy-caution .legacy-card {
+        min-height: 237px;
+      }
+
+      .legacy-caution-row {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 28px;
+        align-items: start;
+        margin-top: 18px;
+      }
+
+      .legacy-checkbox {
+        width: 13px;
+        height: 13px;
+        border: 1px solid #a8a8a8;
+        background: #ffffff;
+        margin-left: 6px;
+      }
+
+      .legacy-bullet {
+        display: grid;
+        grid-template-columns: 8px 1fr;
+        gap: 15px;
+      }
+
+      .legacy-gap {
+        height: 28px;
+      }
+
+      .legacy-rprice-page {
+        color: #555555;
+      }
+
+      .legacy-rprice-canvas {
+        width: 100%;
+        min-width: 2048px;
+        min-height: 900px;
+        background: #ffffff;
+        padding: 10px 8px 80px;
+      }
+
+      .legacy-rprice-title-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: start;
+        min-height: 44px;
+      }
+
+      .legacy-rprice-heading {
+        align-self: end;
+        padding-bottom: 7px;
+        font-weight: bold;
+      }
+
+      .legacy-rprice-account {
+        color: #5a5a5a;
+        font-size: 20px;
+        font-weight: normal;
+      }
+
+      .legacy-rprice-panel {
+        border: 1px solid #cfcfcf;
+        border-radius: 3px;
+        background: #eeeeee;
+        padding: 8px 12px 0;
+      }
+
+      .legacy-rprice-toolbar {
+        display: grid;
+        grid-template-columns: 88px 432px 210px 432px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        min-height: 58px;
+      }
+
+      .legacy-rprice-input,
+      .legacy-rprice-select {
+        height: 28px;
+        border: 1px solid #c7c7c7;
+        border-radius: 3px;
+        background: #ffffff;
+      }
+
+      .legacy-rprice-select {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-left: 11px;
+        color: #555555;
+        font-weight: bold;
+      }
+
+      .legacy-rprice-select::after {
+        content: "";
+        width: 34px;
+        height: 26px;
+        background: linear-gradient(135deg, transparent 45%, #333333 46%, #333333 58%, transparent 59%) center / 11px 11px no-repeat;
+      }
+
+      .legacy-rprice-actions {
+        display: flex;
+        gap: 10px;
+        color: #666666;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .legacy-rprice-action {
+        display: inline-flex;
+        width: 24px;
+        height: 28px;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        background: transparent;
+        color: #666666;
+      }
+
+      .legacy-rprice-action.active {
+        border: 2px solid #1f72d6;
+        border-radius: 3px;
+        background: #f7fbff;
+      }
+
+      .legacy-rprice-table-wrap {
+        height: 497px;
+        overflow: hidden;
+        border: 1px solid #d3d3d3;
+        background: #ffffff;
+      }
+
+      .legacy-rprice-table {
+        width: 2480px;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: #ffffff;
+        color: #555555;
+        font-size: 12px;
+      }
+
+      .legacy-rprice-table th,
+      .legacy-rprice-table td {
+        height: 36px;
+        border-right: 1px solid #d8d8d8;
+        border-bottom: 1px solid #d8d8d8;
+        padding: 0 7px;
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      .legacy-rprice-table th {
+        height: 26px;
+        background: #dddddd;
+        color: #333333;
+        font-weight: bold;
+      }
+
+      .legacy-rprice-image-cell {
+        display: inline-flex;
+        width: 30px;
+        height: 26px;
+        align-items: center;
+        justify-content: center;
+        background: #f4f4f4;
+        color: #c9c9c9;
+        font-size: 12px;
+      }
+
+      .legacy-rprice-footer {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        min-height: 54px;
+        color: #555555;
+      }
+
+      .legacy-rprice-pages {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        font-weight: bold;
+      }
+
+      .legacy-rprice-page-size {
+        justify-self: end;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
       body.logged-out #appTopNav,
       body.logged-out #appShell {
+        display: none !important;
+      }
+
+      body.ggg-global-chrome-hidden .global-header-bar {
         display: none !important;
       }
 
@@ -2999,15 +3704,16 @@
             </div>
           </div>
           <button class="top-nav-item">Custom Size Creator</button>
+          <button class="top-nav-item notification-nav-action" type="button">Notifications</button>
           <div class="top-nav-group relative">
             <button class="top-nav-item" data-primary-nav="other">Other <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button>
             <div class="top-nav-menu absolute left-0 top-11 z-50 w-[232px] rounded-lg border border-border bg-card p-2 text-base shadow-lg">
               <button class="popout-item" data-invoices-page>Invoices</button>
               <button class="popout-item" data-inspiration-site-page>Inspiration Site</button>
               <button class="popout-item" data-primary-nav="shopSettings">Shop Settings</button>
-              <button class="report-issue-action popout-item">Report An Issue</button>
+              <button class="report-issue-action popout-item">Report an Issue</button>
               <button class="popout-item">Shop API</button>
-              <button class="popout-item">R Price</button>
+              <button class="popout-item" data-legacy-rprice-page>R.Price</button>
               <button class="popout-item">Styles</button>
               <button class="popout-item">Readymade FitProfile</button>
               <button class="popout-item">Reports</button>
@@ -3025,7 +3731,7 @@
           <button class="account-settings-action popout-item">Account Settings</button>
           <button class="switch-store-action popout-item">Switch stores</button>
           <button class="account-password-action account-menu-advanced popout-item">Change Password</button>
-          <button class="report-issue-action popout-item">Report An Issue</button>
+          <button class="report-issue-action popout-item">Report an Issue</button>
           <label class="popout-item cursor-pointer">
             <span>Dark mode</span>
             <span class="relative inline-flex h-5 w-9 items-center rounded-full bg-secondary">
@@ -3040,6 +3746,14 @@
               <span class="absolute left-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition peer-checked:left-[18px] peer-checked:bg-primary"></span>
             </span>
           </label>
+          <label class="popout-item cursor-pointer" data-copy-edit-ignore>
+            <span>Edit and save text</span>
+            <span class="relative inline-flex h-5 w-9 items-center rounded-full bg-secondary">
+              <input type="checkbox" class="copy-edit-mode-toggle peer sr-only" />
+              <span class="absolute left-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition peer-checked:left-[18px] peer-checked:bg-primary"></span>
+            </span>
+          </label>
+          <button class="copy-edit-export-action popout-item" data-copy-edit-ignore type="button">Export text edit session</button>
           <button class="change-theme-action account-menu-advanced popout-item">Change Theme</button>
           <div class="account-menu-advanced my-2 border-t border-border"></div>
           <div class="account-menu-advanced px-1 pb-1 text-sm text-muted-foreground">Font</div>
@@ -3103,6 +3817,7 @@
           <section class="space-y-1">
             <div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Helpful Links</div>
             <button class="mobile-nav-link w-full" data-mobile-nav-target="helpful">Helpful Links <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+            <button class="mobile-nav-link notification-nav-action w-full" type="button">Notifications</button>
             <button class="mobile-nav-link w-full" data-primary-nav="shopSettings">Shop Settings</button>
             <button class="mobile-nav-link w-full" data-mobile-nav-target="account">Account <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
           </section>
@@ -3125,15 +3840,15 @@
         </div>
         <div class="mobile-nav-page space-y-4" data-mobile-nav-page="other">
           <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
-          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Other</div><button class="mobile-nav-link w-full" data-invoices-page>Invoices</button><button class="mobile-nav-link w-full">Shop API</button><button class="mobile-nav-link w-full">R Price</button><button class="mobile-nav-link w-full">Styles</button><button class="mobile-nav-link w-full">Readymade FitProfile</button><button class="mobile-nav-link w-full">Reports</button></section>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Other</div><button class="mobile-nav-link w-full" data-invoices-page>Invoices</button><button class="mobile-nav-link w-full">Shop API</button><button class="mobile-nav-link w-full" data-legacy-rprice-page>R.Price</button><button class="mobile-nav-link w-full">Styles</button><button class="mobile-nav-link w-full">Readymade FitProfile</button><button class="mobile-nav-link w-full">Reports</button></section>
         </div>
         <div class="mobile-nav-page space-y-4" data-mobile-nav-page="helpful">
           <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
-          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Helpful Links</div><a class="mobile-nav-link w-full" href="https://i.gocreate.nu/" target="_blank" rel="noopener noreferrer">Inspiration Site</a><a class="mobile-nav-link w-full" href="https://www.taylormadegolf.eu/home?lang=en_NL" target="_blank" rel="noopener noreferrer">Custom Link</a></section>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Helpful Links</div><button class="mobile-nav-link notification-nav-action w-full" type="button">Notifications</button><a class="mobile-nav-link w-full" href="https://i.gocreate.nu/" target="_blank" rel="noopener noreferrer">Inspiration Site</a><a class="mobile-nav-link w-full" href="https://www.taylormadegolf.eu/home?lang=en_NL" target="_blank" rel="noopener noreferrer">Custom Link</a></section>
         </div>
         <div class="mobile-nav-page space-y-4" data-mobile-nav-page="account">
           <button class="mobile-nav-link w-full justify-start gap-2 text-muted-foreground" data-mobile-nav-back type="button"><svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>Back</button>
-          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Account</div><button class="mobile-nav-link account-settings-action w-full" type="button">Account Settings</button><button class="mobile-nav-link change-theme-action w-full" type="button">Change Theme</button><button class="mobile-nav-link report-issue-action w-full" type="button">Report An Issue</button><button class="mobile-nav-link logout-action w-full text-red-600" type="button">Log Out</button></section>
+          <section class="space-y-1"><div class="px-1 pb-1 text-xs font-medium text-muted-foreground">Account</div><button class="mobile-nav-link account-settings-action w-full" type="button">Account Settings</button><button class="mobile-nav-link change-theme-action w-full" type="button">Change Theme</button><button class="mobile-nav-link report-issue-action w-full" type="button">Report an Issue</button><button class="mobile-nav-link logout-action w-full text-red-600" type="button">Log Out</button></section>
         </div>
       </nav>
     </aside>
@@ -3232,6 +3947,10 @@
 
           <section class="space-y-1">
             <div class="px-1 pb-2 text-xs text-muted-foreground">Helpful Links</div>
+            <button class="nav-item notification-nav-action" type="button">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              Notifications
+            </button>
             <a class="nav-item" href="https://i.gocreate.nu/" target="_blank" rel="noopener noreferrer">
               <svg class="icon" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.064 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.064a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>
               Inspiration Site
@@ -3246,7 +3965,7 @@
             </button>
             <button class="nav-item report-issue-action">
               <svg class="icon" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><path d="M4 22V15"></path></svg>
-              Report An Issue
+              Report an Issue
             </button>
           </section>
         </nav>
@@ -3256,7 +3975,7 @@
           <button class="account-settings-action popout-item">Account Settings</button>
           <button class="switch-store-action popout-item">Switch stores</button>
           <button class="account-password-action account-menu-advanced popout-item">Change Password</button>
-          <button class="report-issue-action popout-item">Report An Issue</button>
+          <button class="report-issue-action popout-item">Report an Issue</button>
           <label class="popout-item cursor-pointer">
             <span>Dark mode</span>
             <span class="relative inline-flex h-5 w-9 items-center rounded-full bg-secondary">
@@ -3271,6 +3990,14 @@
               <span class="absolute left-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition peer-checked:left-[18px] peer-checked:bg-primary"></span>
             </span>
           </label>
+          <label class="popout-item cursor-pointer" data-copy-edit-ignore>
+            <span>Edit and save text</span>
+            <span class="relative inline-flex h-5 w-9 items-center rounded-full bg-secondary">
+              <input type="checkbox" class="copy-edit-mode-toggle peer sr-only" />
+              <span class="absolute left-0.5 h-4 w-4 rounded-full bg-card shadow-sm transition peer-checked:left-[18px] peer-checked:bg-primary"></span>
+            </span>
+          </label>
+          <button class="copy-edit-export-action popout-item" data-copy-edit-ignore type="button">Export text edit session</button>
           <button id="changeThemeBtn" class="change-theme-action account-menu-advanced popout-item">Change Theme</button>
           <div class="account-menu-advanced my-2 border-t border-border"></div>
           <div class="account-menu-advanced px-1 pb-1 text-sm text-muted-foreground">Font</div>
@@ -3336,9 +4063,9 @@
           <button class="popout-item" data-invoices-page>Invoices</button>
           <button class="popout-item">Shop API</button>
           <div class="nav-subpopout-host relative">
-            <button class="popout-item nav-subpopout-trigger" data-subpopout="rPrice">R Price <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
+            <button class="popout-item nav-subpopout-trigger" data-subpopout="rPrice" data-legacy-rprice-page>R.Price <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></button>
             <div id="rPricePopout" class="nav-popout absolute left-[calc(100%+10px)] top-0 z-50 w-[210px] rounded-lg border border-border bg-card p-2 text-base shadow-lg" data-subpopout-panel="rPrice">
-              <button class="popout-item">Rules</button>
+              <button class="popout-item" data-legacy-rprice-page>Rules</button>
               <button class="popout-item">Price lists</button>
               <button class="popout-item">Discounts</button>
             </div>
@@ -3352,9 +4079,29 @@
 
       </aside>
 
+      <div id="copyEditToolbar" class="copy-edit-toolbar p-3" data-copy-edit-ignore>
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-sm font-semibold">Edit text</div>
+            <div id="copyEditTargetLabel" class="mt-0.5 truncate text-xs text-muted-foreground">Click text in the prototype to edit it.</div>
+          </div>
+          <button id="copyEditCloseBtn" class="btn btn-soft h-8 px-2" type="button" title="Turn off edit mode">
+            <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </button>
+        </div>
+        <textarea id="copyEditField" class="copy-edit-field mt-3 text-sm" placeholder="Select text to edit"></textarea>
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <button id="copyEditResetBtn" class="btn btn-soft h-8 px-3 text-xs" type="button">Reset text edits</button>
+          <div class="flex items-center gap-2">
+            <button id="copyEditApplyBtn" class="btn btn-soft h-8 px-3 text-xs" type="button">Apply</button>
+            <button id="copyEditSaveBtn" class="btn btn-primary h-8 px-3 text-xs" type="button">Save</button>
+          </div>
+        </div>
+      </div>
+
       <main class="min-w-0 bg-[#fbfbfa]">
-        <header class="flex h-[52px] items-center justify-between border-b border-border bg-card px-6">
-          <div class="top-search flex w-full max-w-xl items-center gap-4">
+        <header class="global-header-bar flex h-[52px] items-center justify-between border-b border-border bg-card px-6">
+          <div class="global-search-shell top-search flex w-full max-w-xl items-center gap-4">
             <div class="h-8 w-px bg-border"></div>
             <div class="relative w-full">
               <svg class="icon absolute left-0 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
@@ -3362,7 +4109,7 @@
             </div>
           </div>
           <div class="flex items-center gap-5">
-            <div class="relative">
+            <div class="chrome-translation-action relative">
             <button id="languageBtn" class="relative text-foreground" title="Language">
               <svg class="icon" viewBox="0 0 24 24"><path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path></svg>
             </button>
@@ -3377,7 +4124,7 @@
               </button>
             </div>
             </div>
-            <button class="relative text-foreground" title="Notifications">
+            <button class="chrome-notification-action relative text-foreground" title="Notifications">
               <svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 7h18s-3 0-3-7"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
               <span class="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-red-500"></span>
             </button>
@@ -3421,8 +4168,8 @@
               </div>
             </section>
           </div>
-          <div id="dashboardWipOverlay" class="absolute inset-0 z-30 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
-            <div class="flex items-center gap-3 rounded-[14px] border border-border bg-card/90 px-6 py-4 text-lg font-semibold shadow-panel">
+          <div id="dashboardWipOverlay" class="dashboard-wip-overlay">
+            <div class="dashboard-wip-card">
               <span>Work in progress</span>
               <button id="hideDashboardWipOverlayBtn" class="btn btn-soft h-9 min-h-9 px-3" type="button" title="Hide overlay" aria-label="Hide overlay">
                 <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -3561,11 +4308,23 @@
                 </label>
                 <label class="grid gap-2 text-sm">
                   <span class="font-medium">Invoice date</span>
-                  <input id="invoiceDateFrom" class="field" type="date" />
+                  <div class="field date-field" data-date-field>
+                    <button class="date-picker-trigger" data-date-picker-trigger="invoiceDateFrom" type="button" aria-label="Open invoice date picker">
+                      <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect></svg>
+                    </button>
+                    <input class="date-display-input" type="text" inputmode="numeric" placeholder="DD-MM-YYYY" data-date-display-for="invoiceDateFrom" />
+                    <input id="invoiceDateFrom" class="date-native-picker" type="hidden" data-date-native />
+                  </div>
                 </label>
                 <label class="grid gap-2 text-sm">
                   <span class="font-medium">To</span>
-                  <input id="invoiceDateTo" class="field" type="date" />
+                  <div class="field date-field" data-date-field>
+                    <button class="date-picker-trigger" data-date-picker-trigger="invoiceDateTo" type="button" aria-label="Open invoice date picker">
+                      <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect></svg>
+                    </button>
+                    <input class="date-display-input" type="text" inputmode="numeric" placeholder="DD-MM-YYYY" data-date-display-for="invoiceDateTo" />
+                    <input id="invoiceDateTo" class="date-native-picker" type="hidden" data-date-native />
+                  </div>
                 </label>
                 <button id="resetInvoiceFiltersBtn" class="btn btn-soft" type="button">
                   <svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path></svg>
@@ -3728,6 +4487,294 @@
               </section>
             </div>
           </section>
+        </div>
+
+        <div id="legacyReadyMadeOrderPage" class="legacy-ready-made-page hidden">
+          <div class="legacy-migration-banner">
+            <button class="legacy-back-button" data-legacy-back type="button">
+              <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>
+              Back
+            </button>
+            <strong>We are in the process of migrating systems, so some pages may still look old for now.</strong>
+            <button class="legacy-back-button legacy-home-button" data-legacy-home type="button">Return Home</button>
+          </div>
+          <div class="legacy-page-canvas">
+            <div class="legacy-title-row">
+              <div class="legacy-title-left">ReadyMade order</div>
+              <div class="legacy-title-right">
+                <h1 class="legacy-account-title">Private label - Test and SAMPLE Account</h1>
+                <div class="legacy-total">Total Item-0</div>
+              </div>
+            </div>
+
+            <div class="legacy-work-grid">
+              <section class="legacy-left-shell">
+                <div class="legacy-tab">Primary info</div>
+                <div class="legacy-step">
+                  <span>Step 1/7</span>
+                  <button class="legacy-next-button" type="button">▶</button>
+                </div>
+
+                <div class="legacy-main-panel">
+                  <div class="legacy-form-grid">
+                    <div class="legacy-label">Item</div>
+                    <div class="legacy-select">3-piece suit</div>
+                    <div></div>
+                    <div></div>
+
+                    <div class="legacy-gap"></div>
+                    <div class="legacy-column-label">Jacket</div>
+                    <div class="legacy-column-label">Trousers</div>
+                    <div class="legacy-column-label">Waistcoat</div>
+
+                    <div class="legacy-label">Model</div>
+                    <div class="legacy-inline-info">
+                      <div class="legacy-select"></div>
+                      <span class="legacy-info-dot">i</span>
+                    </div>
+                    <div class="legacy-inline-info">
+                      <div class="legacy-select"></div>
+                      <span class="legacy-info-dot">i</span>
+                    </div>
+                    <div class="legacy-inline-info">
+                      <div class="legacy-select"></div>
+                      <span class="legacy-info-dot">i</span>
+                    </div>
+
+                    <div class="legacy-label">Style</div>
+                    <div class="legacy-select">none</div>
+                    <div class="legacy-select">none</div>
+                    <div class="legacy-select">none</div>
+
+                    <div class="legacy-gap"></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+
+                    <div class="legacy-label">Make</div>
+                    <div class="legacy-inline-info">
+                      <div class="legacy-select"></div>
+                      <span class="legacy-info-dot">i</span>
+                    </div>
+                    <div class="legacy-select"></div>
+                    <div class="legacy-select"></div>
+
+                    <div class="legacy-label">Canvas</div>
+                    <div class="legacy-select"></div>
+                    <div></div>
+                    <div></div>
+
+                    <div class="legacy-gap"></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+
+                    <div class="legacy-label">Show all fabrics</div>
+                    <div class="legacy-switch"></div>
+                    <div></div>
+                    <div></div>
+
+                    <div class="legacy-label">Fabric</div>
+                    <div class="legacy-field"></div>
+                    <div></div>
+                    <div></div>
+
+                    <div class="legacy-label">Jacket Lining</div>
+                    <div class="legacy-select">manually select</div>
+                    <div></div>
+                    <div></div>
+
+                    <div></div>
+                    <div class="legacy-field"></div>
+                    <div></div>
+                    <div></div>
+
+                    <div class="legacy-label">Waistcoat lining</div>
+                    <div class="legacy-select">manually select</div>
+                    <div></div>
+                    <div></div>
+
+                    <div></div>
+                    <div class="legacy-field"></div>
+                    <div></div>
+                    <div></div>
+
+                    <div class="legacy-label">Button</div>
+                    <div class="legacy-select"></div>
+                    <div></div>
+                    <div></div>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="legacy-side">
+                <section>
+                  <div class="legacy-panel-title with-arrows">
+                    <span>Running info</span>
+                    <span>►►</span>
+                  </div>
+                  <div class="legacy-icons">
+                    <span style="font-family: Georgia, serif !important; font-style: italic;">i</span>
+                    <span>♜</span>
+                    <span>▰</span>
+                    <span>✍</span>
+                  </div>
+                  <div class="legacy-card">
+                    <div class="legacy-info-row">
+                      <strong>Item</strong>
+                      <span>3-piece suit</span>
+                    </div>
+                    <div><strong>Fabric</strong></div>
+                    <div style="margin-top: 10px;"><strong>Lining</strong></div>
+                  </div>
+                </section>
+
+                <section class="legacy-caution">
+                  <div class="legacy-panel-title">Caution(s)</div>
+                  <div class="legacy-icons">
+                    <span style="font-family: Georgia, serif !important; font-style: italic;">i</span>
+                    <span>♧</span>
+                  </div>
+                  <div class="legacy-card">
+                    <strong>Invoice Surcharge</strong>
+                    <div class="legacy-caution-row">
+                      <div class="legacy-checkbox"></div>
+                      <div class="legacy-bullet">
+                        <span>•</span>
+                        <span>Euro 1.05 applies to all orders for fuel and EMS surcharge</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </aside>
+            </div>
+          </div>
+        </div>
+
+        <div id="legacyRPricePage" class="legacy-rprice-page hidden">
+          <div class="legacy-migration-banner">
+            <button class="legacy-back-button" data-legacy-back type="button">
+              <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>
+              Back
+            </button>
+            <strong>We are in the process of migrating systems, so some pages may still look old for now.</strong>
+            <button class="legacy-back-button legacy-home-button" data-legacy-home type="button">Return Home</button>
+          </div>
+          <div class="legacy-rprice-canvas">
+            <div class="legacy-rprice-title-row">
+              <div class="legacy-rprice-heading">Fabric R.Price</div>
+              <div class="legacy-rprice-account">Private label - Test and SAMPLE Account</div>
+            </div>
+
+            <section class="legacy-rprice-panel">
+              <div class="legacy-rprice-toolbar">
+                <strong>Fabric</strong>
+                <div class="legacy-rprice-input"></div>
+                <strong>Price cat</strong>
+                <div class="legacy-rprice-select">All selected (188)</div>
+                <div></div>
+                <div class="legacy-rprice-actions" aria-hidden="true">
+                  <button class="legacy-rprice-action active" type="button">⌕</button>
+                  <button class="legacy-rprice-action" type="button">⟳</button>
+                  <button class="legacy-rprice-action" type="button">↧</button>
+                  <button class="legacy-rprice-action" type="button">↥</button>
+                  <button class="legacy-rprice-action" type="button">↶</button>
+                </div>
+              </div>
+
+              <div class="legacy-rprice-table-wrap">
+                <table class="legacy-rprice-table">
+                  <colgroup>
+                    <col style="width: 150px" />
+                    <col style="width: 42px" />
+                    <col style="width: 54px" />
+                    <col style="width: 112px" />
+                    <col style="width: 160px" />
+                    <col style="width: 96px" />
+                    <col style="width: 180px" />
+                    <col style="width: 92px" />
+                    <col style="width: 64px" />
+                    <col style="width: 76px" />
+                    <col style="width: 84px" />
+                    <col style="width: 84px" />
+                    <col style="width: 68px" />
+                    <col style="width: 68px" />
+                    <col style="width: 124px" />
+                    <col style="width: 52px" />
+                    <col style="width: 76px" />
+                    <col style="width: 154px" />
+                    <col style="width: 76px" />
+                    <col style="width: 84px" />
+                    <col style="width: 50px" />
+                    <col style="width: 98px" />
+                    <col style="width: 84px" />
+                    <col style="width: 138px" />
+                    <col style="width: 180px" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>Fabric</th>
+                      <th>Image</th>
+                      <th>Price cat</th>
+                      <th>Informal jacket (€)</th>
+                      <th>Informal jacket + trouser (€)</th>
+                      <th>2-piece suit (€)</th>
+                      <th>2-piece suit + extra trousers (€)</th>
+                      <th>3-piece suit (€)</th>
+                      <th>Jacket (€)</th>
+                      <th>Trousers (€)</th>
+                      <th>Waistcoat (€)</th>
+                      <th>Bermudas (€)</th>
+                      <th>Shirt (€)</th>
+                      <th>Chinos (€)</th>
+                      <th>Jeans / 5 Pockets (€)</th>
+                      <th>Coat (€)</th>
+                      <th>Detachable liner (€)</th>
+                      <th>Coat + Detachable liner (€)</th>
+                      <th>Overcoat (€)</th>
+                      <th>Pea coat (€)</th>
+                      <th>Tie (€)</th>
+                      <th>Pocket square (€)</th>
+                      <th>Bow tie (€)</th>
+                      <th>Jacket + Bermudas (€)</th>
+                      <th>3-piece suit + extra trousers (€)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>0001 Flannel m. grijs krijt</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM AA</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                    <tr><td>1001 Solid middle-grey</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM A</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                    <tr><td>1002 Solid Anthracite</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM A</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                    <tr><td>1003 Solid Black</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM A</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                    <tr><td>1004 Solid Navy blue</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM A</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                    <tr><td>1005-1 Solid blue</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM A</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                    <tr><td>1006 Sharkskin anthracite</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM B</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                    <tr><td>1007 Sharkskin blue</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM B</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                    <tr><td>1008 Birdseye anthracite</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM B</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                    <tr><td>1009 Birdseye blue</td><td><span class="legacy-rprice-image-cell">↙</span></td><td>CM B</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td><td>0.0</td><td>0.0</td><td>0.0</td><td>0.00</td><td>0.00</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="legacy-rprice-footer">
+                <strong>Total record(s) 58111</strong>
+                <div class="legacy-rprice-pages">
+                  <span style="color:#c8c8c8;">◀</span>
+                  <span style="color:#c8c8c8;">‹</span>
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                  <span>▶</span>
+                  <span>▶|</span>
+                </div>
+                <div class="legacy-rprice-page-size">
+                  <strong>Page size</strong>
+                  <div class="legacy-rprice-select" style="width: 78px;">10</div>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
 
         <div id="shopSettingsPage" class="content-pad hidden p-6">
@@ -4799,7 +5846,13 @@
                   </label>
                   <label class="grid gap-2">
                     <span class="flex items-center justify-between gap-2"><span class="font-medium">Sold out since(From)</span><button class="fabric-favorite-action hidden" type="button" data-fabric-favorite="soldOutSince" title="Save to visible filters">☆</button></span>
-                    <input class="field" type="date" data-fabric-filter="soldOutSince" data-filter-label="Sold out since" />
+                    <div class="field date-field" data-date-field>
+                      <button class="date-picker-trigger" data-date-picker-trigger type="button" aria-label="Open sold out since picker">
+                        <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect></svg>
+                      </button>
+                      <input class="date-display-input" type="text" inputmode="numeric" placeholder="DD-MM-YYYY" data-date-display />
+                      <input class="date-native-picker" type="hidden" data-date-native data-fabric-filter="soldOutSince" data-filter-label="Sold out since" />
+                    </div>
                   </label>
                   <label class="grid gap-2">
                     <span class="flex items-center justify-between gap-2"><span class="font-medium">Extra day(s)</span><button class="fabric-favorite-action hidden" type="button" data-fabric-favorite="extraDays" title="Save to visible filters">☆</button></span>
@@ -5017,9 +6070,12 @@
           </label>
           <label class="block space-y-2">
             <span class="flex items-center justify-between gap-2 text-sm font-medium">Date of Birth <span class="text-muted-foreground">Optional</span></span>
-            <div class="relative">
-              <svg class="icon absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect></svg>
-              <input id="dobInput" class="field pl-9" type="date" />
+            <div class="field date-field" data-date-field>
+              <button class="date-picker-trigger" data-date-picker-trigger="dobInput" type="button" aria-label="Open date of birth picker">
+                <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect></svg>
+              </button>
+              <input class="date-display-input" type="text" inputmode="numeric" placeholder="DD-MM-YYYY" data-date-display-for="dobInput" />
+              <input id="dobInput" class="date-native-picker" type="hidden" data-date-native />
             </div>
           </label>
         </div>
@@ -5477,6 +6533,10 @@
           <span class="text-sm text-muted-foreground">Mask or restore customer overview emails.</span>
         </div>
         <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/35 px-3 py-2">
+          <span class="font-mono text-sm font-semibold">GGG</span>
+          <span class="text-sm text-muted-foreground">Hide or show presentation header controls.</span>
+        </div>
+        <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/35 px-3 py-2">
           <span class="font-mono text-sm font-semibold">III</span>
           <span class="text-sm text-muted-foreground">Show or hide detail-page info strips.</span>
         </div>
@@ -5666,11 +6726,23 @@
         </label>
         <label class="fabric-filter-field">
           <span class="flex items-center justify-between gap-2"><span>Processed date from</span><button class="fabric-favorite-action hidden" type="button" data-orders-favorite="processedDateFrom" title="Save to visible filters">☆</button></span>
-          <input class="field" type="date" data-orders-date-filter="processedDateFrom" data-filter-label="Processed date from" />
+          <div class="field date-field" data-date-field>
+            <button class="date-picker-trigger" data-date-picker-trigger type="button" aria-label="Open processed date picker">
+              <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect></svg>
+            </button>
+            <input class="date-display-input" type="text" inputmode="numeric" placeholder="DD-MM-YYYY" data-date-display />
+            <input class="date-native-picker" type="hidden" data-date-native data-orders-date-filter="processedDateFrom" data-filter-label="Processed date from" />
+          </div>
         </label>
         <label class="fabric-filter-field">
           <span class="flex items-center justify-between gap-2"><span>Processed date to</span><button class="fabric-favorite-action hidden" type="button" data-orders-favorite="processedDateTo" title="Save to visible filters">☆</button></span>
-          <input class="field" type="date" data-orders-date-filter="processedDateTo" data-filter-label="Processed date to" />
+          <div class="field date-field" data-date-field>
+            <button class="date-picker-trigger" data-date-picker-trigger type="button" aria-label="Open processed date picker">
+              <svg class="icon h-4 w-4" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect></svg>
+            </button>
+            <input class="date-display-input" type="text" inputmode="numeric" placeholder="DD-MM-YYYY" data-date-display />
+            <input class="date-native-picker" type="hidden" data-date-native data-orders-date-filter="processedDateTo" data-filter-label="Processed date to" />
+          </div>
         </label>
       </div>
       <div class="flex justify-end gap-2 border-t border-border px-5 py-4">
@@ -5983,6 +7055,6 @@
     <div id="alertStack" class="alert-stack" aria-live="polite" aria-atomic="false"></div>
     <div id="toast" class="fixed bottom-5 left-1/2 z-[60] hidden -translate-x-1/2 rounded-lg border border-border bg-card px-4 py-3 text-sm shadow-panel"></div>
 
-    <script src="./app.js?v=table-headers-no-ellipsis"></script>
+    <script src="./app.js?v=dashboard-wip-overlay-dark"></script>
   </body>
 </html>
