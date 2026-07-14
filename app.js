@@ -1821,7 +1821,7 @@ const createOrderFlowCategories = [
 
 const createOrderFlowItems = {
   formal: [
-    { id: "formal-two-piece", label: "2-Piece Suit", flowItem: "two-piece", fieldKey: "item", fieldValue: "2-Piece Suit", tag: "Work in progress", disabled: true },
+    { id: "formal-two-piece", label: "2-Piece Suit", flowItem: "two-piece", fieldKey: "item", fieldValue: "2-Piece Suit", tag: "Work in progress" },
     ...[
       "2-Piece Suit + Extra Trousers",
       "3-Piece Suit",
@@ -1838,17 +1838,17 @@ const createOrderFlowItems = {
     { id: "informal-trousers", label: "Trousers", disabled: true },
   ],
   trousers: [
-    { id: "trousers-standard", label: "Trousers", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Trousers", disabled: true },
-    { id: "trousers-chino", label: "Chino", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Chino", disabled: true },
-    { id: "trousers-jeans", label: "Jeans/5 Pockets", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Jeans/5 Pockets", disabled: true },
-    { id: "trousers-bermudas", label: "Bermudas", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Bermudas", disabled: true },
+    { id: "trousers-standard", label: "Trousers", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Trousers" },
+    { id: "trousers-chino", label: "Chino", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Chino" },
+    { id: "trousers-jeans", label: "Jeans/5 Pockets", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Jeans/5 Pockets" },
+    { id: "trousers-bermudas", label: "Bermudas", flowItem: "trousers", fieldKey: "trouserItem", fieldValue: "Bermudas" },
   ],
   knitwear: [
-    { id: "knitwear-knit", label: "Knit", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Knit", note: "Skip the TryOn - Convert from a Jacket FitProfile", disabled: true },
-    { id: "knitwear-leisure-pants", label: "Leisure Pants", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Pants", disabled: true },
-    { id: "knitwear-leisure-shorts", label: "Leisure Shorts", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Shorts", disabled: true },
-    { id: "knitwear-scarf", label: "Scarf", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Scarf", disabled: true },
-    { id: "knitwear-beanie", label: "Beanie", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Beanie", disabled: true },
+    { id: "knitwear-knit", label: "Knit", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Knit", note: "Skip the TryOn - Convert from a Jacket FitProfile" },
+    { id: "knitwear-leisure-pants", label: "Leisure Pants", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Pants" },
+    { id: "knitwear-leisure-shorts", label: "Leisure Shorts", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Leisure Shorts" },
+    { id: "knitwear-scarf", label: "Scarf", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Scarf" },
+    { id: "knitwear-beanie", label: "Beanie", flowItem: "knitwear", fieldKey: "knitwearItem", fieldValue: "Beanie" },
   ],
 };
 
@@ -8047,7 +8047,8 @@ function createOrderFlowItemSelected(item) {
 }
 
 function selectedCreateOrderFlowItem() {
-  return createOrderFlowAllItems().find((item) => createOrderFlowItemSelected(item)) || null;
+  const explicitSelected = createOrderFlowAllItems().find((item) => item.id === state.createOrderFlowSelectedItemId && !item.disabled);
+  return explicitSelected || createOrderFlowAllItems().find((item) => createOrderFlowItemSelected(item)) || null;
 }
 
 function createOrderFlowVisibleItems() {
@@ -11978,9 +11979,9 @@ function setCreateOrderStopModal(open) {
 function setCreateOrderFlowModal(open) {
   el("createOrderFlowModal")?.classList.toggle("open", open);
   if (open) {
-    state.createOrderFlowCategory = "informal";
+    state.createOrderFlowCategory = "formal";
     state.createOrderFlowSearch = "";
-    setCreateOrderFlowItem("legacy-informal-jacket-trouser");
+    setCreateOrderFlowItem("formal-two-piece");
     renderCreateOrderFlowModal();
   }
   setOverlay(open || anyModalOpen());
@@ -13572,6 +13573,7 @@ function wireEvents() {
   });
   el("beginCreateOrderFlowBtn")?.addEventListener("click", (event) => {
     event.stopPropagation();
+    event.stopImmediatePropagation();
     const selectedItem = selectedCreateOrderFlowItem();
     if (!selectedItem) {
       showToast("Select an available order item first.");
